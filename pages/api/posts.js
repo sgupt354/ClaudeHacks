@@ -19,11 +19,22 @@ async function geocodeLocation(location) {
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
+    const { id } = req.query;
+
+    if (id) {
+      const { data, error } = await insforge.database
+        .from("posts")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json(data);
+    }
+
     const { data, error } = await insforge.database
       .from("posts")
       .select("*")
       .order("echo_count", { ascending: false });
-
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json(data);
   }

@@ -28,16 +28,15 @@ export default function PostPage() {
 
   useEffect(() => {
     if (!id) return;
-    insforge.database
-      .from("posts")
-      .select("*")
-      .eq("id", id)
-      .single()
-      .then(({ data }) => {
+    fetch(`/api/posts?id=${id}`)
+      .then((r) => r.json())
+      .then((data) => {
         setPost(data);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [id]);
+<<<<<<< Updated upstream
 
   // ← NEW: animate progress bar after post loads
   useEffect(() => {
@@ -47,6 +46,8 @@ export default function PostPage() {
     return () => clearTimeout(timer);
   }, [post]);
 
+=======
+>>>>>>> Stashed changes
   async function handleEcho() {
     if (echoed) return;
     await fetch("/api/echo", {

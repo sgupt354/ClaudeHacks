@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: ['sao-snapshot-herein-poster.trycloudflare.com'],
   turbopack: {
     root: __dirname,
   },
