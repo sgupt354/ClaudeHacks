@@ -3,37 +3,15 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 
 const LOADING_STEPS = [
-  {
-    text: "Reading your complaint...",
-    icon: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4dd/512.gif",
-    lottie: "https://lottie.host/embed/8a2d3e4f-1234-5678-abcd-ef0123456789/animation.json",
-    color: "#6366f1",
-  },
-  {
-    text: "Searching city website...",
-    color: "#f59e0b",
-  },
-  {
-    text: "Finding the right official...",
-    color: "#2563eb",
-  },
-  {
-    text: "Checking city ordinances...",
-    color: "#8b5cf6",
-  },
-  {
-    text: "Writing your formal letter...",
-    color: "#22c55e",
-  },
-  {
-    text: "Almost done...",
-    color: "#06b6d4",
-  },
+  { text: "Reading your complaint...", icon: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4dd/512.gif", lottie: "https://lottie.host/embed/8a2d3e4f-1234-5678-abcd-ef0123456789/animation.json", color: "#6366f1" },
+  { text: "Searching city website...", color: "#f59e0b" },
+  { text: "Finding the right official...", color: "#2563eb" },
+  { text: "Checking city ordinances...", color: "#8b5cf6" },
+  { text: "Writing your formal letter...", color: "#22c55e" },
+  { text: "Almost done...", color: "#06b6d4" },
 ];
 
-// SVG icons for each step — no emojis, clean animated SVGs
 const STEP_ICONS = [
-  // Reading — animated pencil
   () => (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
       <circle cx="40" cy="40" r="38" stroke="#6366f1" strokeWidth="3" strokeDasharray="8 4" style={{ animation: "spin 3s linear infinite" }} />
@@ -43,7 +21,6 @@ const STEP_ICONS = [
       <rect x="24" y="52" width="14" height="4" rx="2" fill="#6366f1" style={{ animation: "blink 1s ease-in-out infinite" }} />
     </svg>
   ),
-  // Searching — animated magnifier
   () => (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
       <circle cx="34" cy="34" r="16" stroke="#f59e0b" strokeWidth="3" fill="none" style={{ animation: "pulse 1.2s ease-in-out infinite" }} />
@@ -51,7 +28,6 @@ const STEP_ICONS = [
       <circle cx="34" cy="34" r="8" fill="#fef3c7" style={{ animation: "pulse 1.2s ease-in-out infinite" }} />
     </svg>
   ),
-  // Official — animated building
   () => (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
       <rect x="20" y="40" width="40" height="20" fill="#bfdbfe" />
@@ -62,7 +38,6 @@ const STEP_ICONS = [
       <rect x="48" y="44" width="6" height="16" fill="#2563eb" style={{ animation: "blink 0.8s ease-in-out 0.4s infinite" }} />
     </svg>
   ),
-  // Ordinance — animated scales
   () => (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
       <line x1="40" y1="20" x2="40" y2="60" stroke="#8b5cf6" strokeWidth="2" />
@@ -71,7 +46,6 @@ const STEP_ICONS = [
       <circle cx="60" cy="36" r="8" fill="#ede9fe" stroke="#8b5cf6" strokeWidth="2" style={{ animation: "sway 2s ease-in-out infinite reverse" }} />
     </svg>
   ),
-  // Writing — animated pen
   () => (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
       <rect x="18" y="30" width="44" height="32" rx="4" fill="#dcfce7" stroke="#22c55e" strokeWidth="2" />
@@ -81,13 +55,32 @@ const STEP_ICONS = [
       <path d="M52 18 L60 26 L44 42 L36 42 L36 34 Z" fill="#16a34a" style={{ animation: "write 1.5s ease-in-out infinite" }} />
     </svg>
   ),
-  // Done — animated checkmark
   () => (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
       <circle cx="40" cy="40" r="30" fill="#dcfce7" stroke="#22c55e" strokeWidth="3" style={{ animation: "pulse 1s ease-in-out infinite" }} />
       <polyline points="26,40 36,50 54,30" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ animation: "draw 0.5s ease-in-out forwards" }} />
     </svg>
   ),
+];
+
+// ← NEW: example chips data
+const EXAMPLES = [
+  {
+    label: "🔦 Broken streetlight",
+    text: "There's a broken streetlight on Rural Road near the library. It's been out for 3 weeks and it's dangerous at night.",
+  },
+  {
+    label: "🚸 Unsafe crosswalk",
+    text: "The crosswalk markings at Mill Ave and University are completely faded. Kids nearly get hit every morning walking to school.",
+  },
+  {
+    label: "🌳 Park needs shade",
+    text: "McClintock Park has no shade structures. In summer it's over 140°F and kids can't play there at all.",
+  },
+  {
+    label: "🕳️ Pothole damage",
+    text: "There's a massive pothole on Apache Blvd that damaged my tire. It's been there for months and nobody has fixed it.",
+  },
 ];
 
 export default function Compose() {
@@ -158,24 +151,22 @@ export default function Compose() {
       <>
         <nav className="nav">
           <Link href="/" className="nav-logo">civic<span>pulse</span></Link>
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <Link href="/forum" className="landing-link">Forum</Link>
+            <Link href="/map" className="landing-link">Map</Link>
+          </div>
         </nav>
         <div className="container">
           <div style={{ textAlign: "center", padding: "48px 24px" }}>
-
-            {/* Animated SVG icon */}
             <div style={{ marginBottom: 24, display: "flex", justifyContent: "center" }}>
               <Icon />
             </div>
-
-            {/* Status text */}
             <p style={{ fontSize: 20, fontWeight: 600, color: current.color, marginBottom: 6, transition: "color 0.3s" }}>
               {current.text}
             </p>
             <p style={{ fontSize: 13, color: "#999", marginBottom: 32 }}>
               AI is searching the web for real officials and city ordinances
             </p>
-
-            {/* Step progress bar */}
             <div style={{ maxWidth: 400, margin: "0 auto 32px" }}>
               <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
                 {LOADING_STEPS.map((_, i) => (
@@ -186,12 +177,8 @@ export default function Compose() {
                   }} />
                 ))}
               </div>
-              <p style={{ fontSize: 11, color: "#bbb" }}>
-                Step {loadingStep + 1} of {LOADING_STEPS.length}
-              </p>
+              <p style={{ fontSize: 11, color: "#bbb" }}>Step {loadingStep + 1} of {LOADING_STEPS.length}</p>
             </div>
-
-            {/* Completed steps */}
             <div style={{ maxWidth: 320, margin: "0 auto", textAlign: "left" }}>
               {LOADING_STEPS.slice(0, loadingStep + 1).map((s, i) => (
                 <div key={i} style={{
@@ -207,7 +194,6 @@ export default function Compose() {
             </div>
           </div>
         </div>
-
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
           @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(1.08); } }
@@ -226,6 +212,10 @@ export default function Compose() {
       <>
         <nav className="nav">
           <Link href="/" className="nav-logo">civic<span>pulse</span></Link>
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <Link href="/forum" className="landing-link">Forum</Link>
+            <Link href="/map" className="landing-link">Map</Link>
+          </div>
         </nav>
         <div className="container">
           <div className="success-banner">✓ Your issue has been posted and your letter is ready to send</div>
@@ -248,7 +238,7 @@ export default function Compose() {
             👥 See who else is raising this issue
           </button>
           <Link href="/" style={{ display: "block", textAlign: "center", fontSize: 14, color: "#666", textDecoration: "none", marginTop: 12 }}>
-            ← Back to feed
+            ← Back to forum
           </Link>
         </div>
       </>
@@ -259,9 +249,13 @@ export default function Compose() {
     <>
       <nav className="nav">
         <Link href="/" className="nav-logo">civic<span>pulse</span></Link>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <Link href="/forum" className="landing-link">Forum</Link>
+          <Link href="/map" className="landing-link">Map</Link>
+        </div>
       </nav>
       <div className="container">
-        <Link href="/" className="back-link">← Back to feed</Link>
+        <Link href="/forum" className="back-link">← Back to forum</Link>
         <div className="compose-card">
           <h1 className="compose-title">Raise a community issue</h1>
           <p className="compose-subtitle">
@@ -281,6 +275,18 @@ export default function Compose() {
               value={complaint}
               onChange={(e) => setComplaint(e.target.value)}
             />
+            {/* ← NEW: Example chips */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+              {EXAMPLES.map((ex) => (
+                <button
+                  key={ex.label}
+                  onClick={() => setComplaint(ex.text)}
+                  className="chip-btn"
+                >
+                  {ex.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Location (optional)</label>

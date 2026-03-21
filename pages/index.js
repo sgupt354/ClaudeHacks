@@ -1,93 +1,56 @@
-import { useState, useEffect } from "react";
 import Link from "next/link";
 
-const TYPE_LABELS = {
-  traffic_safety: { label: "Traffic Safety", cls: "type-traffic" },
-  street_lighting: { label: "Street Lighting", cls: "type-lighting" },
-  road_maintenance: { label: "Road Maintenance", cls: "type-roads" },
-  parks_facilities: { label: "Parks", cls: "type-parks" },
-  noise_complaint: { label: "Noise", cls: "type-other" },
-  housing: { label: "Housing", cls: "type-safety" },
-  utilities: { label: "Utilities", cls: "type-other" },
-  other: { label: "Community", cls: "type-other" },
-};
-
 export default function Home() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/posts")
-      .then((r) => r.json())
-      .then((data) => {
-        setPosts(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const totalVoices = posts.reduce((sum, p) => sum + (p.echo_count || 0), 0);
-
   return (
-    <>
-      <nav className="nav">
+    <div className="landing-shell">
+      <div className="landing-bg-orb landing-bg-orb-1" />
+      <div className="landing-bg-orb landing-bg-orb-2" />
+      <div className="landing-bg-grid" />
+
+      <nav className="nav landing-nav">
         <Link href="/" className="nav-logo">
           civic<span>pulse</span>
         </Link>
-        <Link href="/map" style={{ fontSize: 14, color: "#666", textDecoration: "none" }}>
-          Map 
-        </Link>
-        <Link href="/compose" className="nav-btn">
-          + Raise Issue
-        </Link>
+        <div className="landing-nav-links">
+          <Link href="/forum" className="landing-link">Forum</Link>
+          <Link href="/map" className="landing-link">Map</Link>
+          <Link href="/compose" className="nav-btn">
+            Raise Issue
+          </Link>
+        </div>
       </nav>
 
-      <div className="container">
-        <div className="feed-header">
-          <h1 className="feed-title">Your Community's Voice</h1>
-          <p className="feed-subtitle">
-            {totalVoices} residents raising issues in Tempe · Powered by AI
+      <main className="landing-main container">
+        <section className="landing-hero">
+          <p className="landing-kicker">Neighborhood intelligence for real civic action</p>
+          <h1 className="landing-title">
+            Turn local problems into
+            <span> collective momentum</span>
+          </h1>
+          <p className="landing-subtitle">
+            Report issues, rally community support, and send data-backed letters to real officials.
           </p>
-        </div>
-
-        {loading && (
-          <div className="loading-wrap">
-            <div className="loading-spinner" />
-            <p className="loading-text">Loading community issues...</p>
+          <div className="landing-cta-row">
+            <Link href="/compose" className="landing-primary-btn">Start a Report</Link>
+            <Link href="/forum" className="landing-secondary-btn">Explore Forum</Link>
           </div>
-        )}
+        </section>
 
-        {!loading && posts.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-icon">🏙️</div>
-            <p className="empty-title">No issues reported yet</p>
-            <p>Be the first to raise a community issue</p>
-          </div>
-        )}
-
-        {posts.map((post) => {
-          const typeInfo = TYPE_LABELS[post.issue_type] || TYPE_LABELS.other;
-          return (
-            <Link href={`/post/${post.id}`} key={post.id} className="post-card">
-              <span className={`post-type ${typeInfo.cls}`}>
-                {typeInfo.label}
-              </span>
-              <p className="post-complaint">{post.complaint}</p>
-              <div className="post-meta">
-                <span className="post-location">📍 {post.location || "Tempe, AZ"}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className={`post-status status-${post.status}`}>
-                    {post.status === "sent" ? "Letter Sent" : "Pending"}
-                  </span>
-                  <span className="post-echo">
-                    👥 {post.echo_count} voices
-                  </span>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </>
+        <section className="landing-feature-grid">
+          <article className="landing-feature-card">
+            <p className="landing-feature-title">Community Forum</p>
+            <p className="landing-feature-text">See what neighbors are reporting and add your voice to shared concerns.</p>
+          </article>
+          <article className="landing-feature-card">
+            <p className="landing-feature-title">Official Routing</p>
+            <p className="landing-feature-text">AI drafts formal requests and routes them to relevant departments.</p>
+          </article>
+          <article className="landing-feature-card">
+            <p className="landing-feature-title">Live Civic Map</p>
+            <p className="landing-feature-text">Visualize issue clusters across the city with category-aware map pins.</p>
+          </article>
+        </section>
+      </main>
+    </div>
   );
 }

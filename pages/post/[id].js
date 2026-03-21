@@ -24,6 +24,7 @@ export default function PostPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [animatedProgress, setAnimatedProgress] = useState(0); // ← NEW
 
   useEffect(() => {
     if (!id) return;
@@ -37,6 +38,14 @@ export default function PostPage() {
         setLoading(false);
       });
   }, [id]);
+
+  // ← NEW: animate progress bar after post loads
+  useEffect(() => {
+    if (!post) return;
+    const target = Math.min((post.echo_count / 50) * 100, 100);
+    const timer = setTimeout(() => setAnimatedProgress(target), 300);
+    return () => clearTimeout(timer);
+  }, [post]);
 
   async function handleEcho() {
     if (echoed) return;
@@ -88,6 +97,10 @@ export default function PostPage() {
       <>
         <nav className="nav">
           <Link href="/" className="nav-logo">civic<span>pulse</span></Link>
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <Link href="/forum" className="landing-link">Forum</Link>
+            <Link href="/map" className="landing-link">Map</Link>
+          </div>
         </nav>
         <div className="container">
           <div className="loading-wrap">
@@ -102,24 +115,31 @@ export default function PostPage() {
     <>
       <nav className="nav">
         <Link href="/" className="nav-logo">civic<span>pulse</span></Link>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <Link href="/forum" className="landing-link">Forum</Link>
+          <Link href="/map" className="landing-link">Map</Link>
+        </div>
       </nav>
       <div className="container">
         <p>Post not found.</p>
-        <Link href="/">← Back to feed</Link>
+        <Link href="/forum">← Back to forum</Link>
       </div>
     </>
   );
 
   const typeInfo = TYPE_LABELS[post.issue_type] || TYPE_LABELS.other;
-  const progress = Math.min((post.echo_count / 50) * 100, 100);
 
   return (
     <>
       <nav className="nav">
         <Link href="/" className="nav-logo">civic<span>pulse</span></Link>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <Link href="/forum" className="landing-link">Forum</Link>
+          <Link href="/map" className="landing-link">Map</Link>
+        </div>
       </nav>
       <div className="container">
-        <Link href="/" className="back-link">← Back to feed</Link>
+        <Link href="/forum" className="back-link">← Back to forum</Link>
 
         <div className="result-section">
           <span className={`post-type ${typeInfo.cls}`}>{typeInfo.label}</span>
@@ -133,10 +153,26 @@ export default function PostPage() {
         <div className="collective-bar">
           <p className="collective-count">👥 {post.echo_count} residents</p>
           <p className="collective-label">have raised this same issue</p>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }} />
+
+          {/* ← NEW: animated bar with milestone ticks */}
+          <div style={{ position: "relative", marginTop: 10 }}>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${animatedProgress}%`, transition: "width 1s ease" }} />
+            </div>
+            {/* Milestone tick marks */}
+            <div style={{ position: "relative", height: 16, marginTop: 4 }}>
+              <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", textAlign: "center" }}>
+                <div style={{ width: 1, height: 6, background: post.echo_count >= 25 ? "#22c55e" : "#d1d5db", margin: "0 auto" }} />
+                <span style={{ fontSize: 10, color: post.echo_count >= 25 ? "#166534" : "#aaa" }}>25</span>
+              </div>
+              <div style={{ position: "absolute", right: 0, textAlign: "center" }}>
+                <div style={{ width: 1, height: 6, background: post.echo_count >= 50 ? "#22c55e" : "#d1d5db", margin: "0 auto" }} />
+                <span style={{ fontSize: 10, color: post.echo_count >= 50 ? "#166534" : "#aaa" }}>50</span>
+              </div>
+            </div>
           </div>
-          <p style={{ fontSize: 11, color: "#166534", marginTop: 6 }}>
+
+          <p style={{ fontSize: 11, color: "#166534", marginTop: 4 }}>
             {post.echo_count >= 50
               ? "🔥 High priority — escalating to City Council"
               : post.echo_count >= 25

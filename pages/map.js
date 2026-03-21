@@ -238,7 +238,7 @@ export default function MapPage() {
       <nav className="nav">
         <Link href="/" className="nav-logo">civic<span>pulse</span></Link>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link href="/" style={{ fontSize: 14, color: "#666", textDecoration: "none" }}>📋 Feed</Link>
+          <Link href="/forum" className="landing-link">Forum</Link>
           <Link href="/compose" className="nav-btn">+ Raise Issue</Link>
         </div>
       </nav>
