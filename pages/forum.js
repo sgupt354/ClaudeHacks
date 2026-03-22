@@ -3,6 +3,7 @@ import Link from "next/link";
 import Nav from "../components/Nav";
 import Toast from "../components/Toast";
 import { ISSUE_COLORS, FORUM_THREADS } from "../lib/civicData";
+import EchoConsentDialog from "../components/EchoConsentDialog";
 
 const FILTERS = [
   { key: "all",              label: "All Issues"    },
@@ -157,6 +158,7 @@ function PostModal({ post, echoedIds, onEcho, onClose, onToast }) {
   const [echoCount, setEchoCount] = useState(post.echo_count ?? post.support ?? 0);
   const [letterExpanded, setLetterExpanded] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
   const isDemo = String(post.id).startsWith("demo");
   const echoes = Number(echoCount) || 0;
   const urgency = post.urgency_score || 0;
@@ -170,7 +172,13 @@ function PostModal({ post, echoedIds, onEcho, onClose, onToast }) {
 
   async function handleEcho() {
     if (echoed) return;
-    // localStorage duplicate prevention
+    const consentKey = `civilian_consent_${post.id}`;
+    const alreadyConsented = localStorage.getItem(consentKey) === "true";
+    if (!alreadyConsented) { setShowConsent(true); return; }
+    await doEcho();
+  }
+
+  async function doEcho() {
     const saved = JSON.parse(localStorage.getItem("echoed_posts") || "[]");
     if (saved.includes(String(post.id))) { setEchoed(true); return; }
     if (typeof window !== "undefined") {
@@ -181,8 +189,8 @@ function PostModal({ post, echoedIds, onEcho, onClose, onToast }) {
     setEchoed(true);
     setEchoCount(n => n + 1);
     onEcho(String(post.id));
-    const updated = [...saved, String(post.id)];
-    localStorage.setItem("echoed_posts", JSON.stringify(updated));
+    localStorage.setItem(`civilian_consent_${post.id}`, "true");
+    localStorage.setItem("echoed_posts", JSON.stringify([...saved, String(post.id)]));
     if (!isDemo) {
       try { await fetch("/api/echo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: post.id, alreadyEchoed: false }) }); } catch {}
     }
@@ -333,6 +341,13 @@ function PostModal({ post, echoedIds, onEcho, onClose, onToast }) {
           </div>
         </div>
       </div>
+      {showConsent && (
+        <EchoConsentDialog
+          post={post}
+          onConfirm={() => { setShowConsent(false); doEcho(); }}
+          onCancel={() => setShowConsent(false)}
+        />
+      )}
     </div>
   );
 }
@@ -397,6 +412,7 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.like_count || Math.floor(Math.random() * 12) + 1);
   const urgency = post.urgency_score || 0;
+  const [showCardConsent, setShowCardConsent] = useState(false);
 
   // Load liked state from localStorage
   useEffect(() => {
@@ -419,6 +435,13 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
   async function handleEcho(e) {
     e.stopPropagation();
     if (isEchoed) return;
+    const consentKey = `civilian_consent_${post.id}`;
+    const alreadyConsented = localStorage.getItem(consentKey) === "true";
+    if (!alreadyConsented) { setShowCardConsent(true); return; }
+    await doCardEcho();
+  }
+
+  async function doCardEcho() {
     const saved = JSON.parse(localStorage.getItem("echoed_posts") || "[]");
     if (saved.includes(String(post.id))) { onEcho(String(post.id)); return; }
     if (typeof window !== "undefined") {
@@ -430,6 +453,7 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
     setTimeout(() => setEchoScale(1), 200);
     setEchoCount(n => n + 1);
     onEcho(String(post.id));
+    localStorage.setItem(`civilian_consent_${post.id}`, "true");
     localStorage.setItem("echoed_posts", JSON.stringify([...saved, String(post.id)]));
     if (!isDemo) {
       try { await fetch("/api/echo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: post.id, alreadyEchoed: false }) }); } catch {}
@@ -500,6 +524,13 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
           <span style={{ fontSize: 12, color: "var(--muted)" }}>{post.location || "Tempe, AZ"}</span>
         </div>
       </div>
+      {showCardConsent && (
+        <EchoConsentDialog
+          post={post}
+          onConfirm={(e) => { if (e) e.stopPropagation(); setShowCardConsent(false); doCardEcho(); }}
+          onCancel={(e) => { if (e) e.stopPropagation(); setShowCardConsent(false); }}
+        />
+      )}
     </div>
   );
 }

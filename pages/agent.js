@@ -115,12 +115,12 @@ export default function AgentPage() {
               </svg>
             </div>
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>AI Agent Dashboard</h1>
-              <p style={{ fontSize: 13, color: "var(--muted)" }}>Autonomous civic action — running 24/7</p>
+              <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>Issue Tracker</h1>
+              <p style={{ fontSize: 13, color: "var(--muted)" }}>Track your issues. See when government responds.</p>
             </div>
             <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 999, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)" }}>
               <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", animation: "pulse-dot 2s ease-in-out infinite" }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#22c55e" }}>Agent Active</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#22c55e" }}>Tracking Active</span>
             </div>
           </div>
 
@@ -149,9 +149,10 @@ export default function AgentPage() {
           <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
             {[
               "Letter sent to official",
-              "Agent monitors for reply",
-              "No reply in 7 days?",
-              "Auto follow-up sent",
+              "Community consented",
+              "Agent monitors 7 days",
+              "No reply?",
+              "Follow-up auto-sent",
               "Issue resolved",
             ].map((step, i, arr) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>

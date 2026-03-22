@@ -616,21 +616,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ FOOTER ═══ */}
-      <footer style={{ borderTop: "1px solid var(--border)", padding: "40px 0", background: "var(--bg)" }}>
-        <div style={{ maxWidth: 1152, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5, color: "var(--text)" }}>
-            civil<span style={{ color: "var(--blue)" }}>ian</span>
-          </div>
-          <div style={{ display: "flex", gap: 20, fontSize: 14 }}>
-            {[["/forum","Forum"],["/reels","Reels"],["/map","Map"],["/compose","Raise Issue"]].map(([href,lbl]) => (
-              <Link key={href} href={href} style={{ textDecoration: "none", color: "var(--muted)" }}>{lbl}</Link>
-            ))}
-          </div>
-          <p style={{ fontSize: 12, color: "var(--muted)" }}>&copy; 2026 Civilian &middot; Tempe, AZ</p>
-        </div>
-      </footer>
-
       <style>{`
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
         @keyframes spin { to{transform:rotate(360deg)} }

@@ -8,8 +8,7 @@ const LINKS = [
   { href: "/map",     label: "Map"     },
   { href: "/reels",   label: "Reels"   },
   { href: "/groups",  label: "Groups"  },
-  { href: "/agent",   label: "Agent"   },
-  { href: "/policy",  label: "Policy"  },
+  { href: "/agent",   label: "Track"   },
   { href: "/profile", label: "Profile" },
 ];
 
@@ -90,14 +89,6 @@ export default function Nav() {
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <footer style={{ borderTop: "1px solid var(--border)", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: 20, fontSize: 12, color: "var(--muted)" }}>
-        <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#2563eb"} onMouseLeave={e => e.currentTarget.style.color = "var(--muted)"}>Privacy</Link>
-        <Link href="/accessibility" style={{ color: "var(--muted)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#2563eb"} onMouseLeave={e => e.currentTarget.style.color = "var(--muted)"}>Accessibility</Link>
-        <Link href="/policy" style={{ color: "var(--muted)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#2563eb"} onMouseLeave={e => e.currentTarget.style.color = "var(--muted)"}>Community Policy</Link>
-        <span>· Civilian · Tempe, AZ</span>
-      </footer>
     </>
   );
 }

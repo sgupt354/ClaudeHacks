@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { insforge } from "../../lib/supabase";
 import Nav from "../../components/Nav";
 import Toast from "../../components/Toast";
+import EchoConsentDialog from "../../components/EchoConsentDialog";
 
 const TYPE_LABELS = {
   traffic_safety:   { label: "Traffic Safety",   cls: "type-traffic"  },
@@ -183,6 +184,8 @@ export default function PostPage() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [copyState, setCopyState] = useState("idle"); // idle | copied
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -224,6 +227,17 @@ export default function PostPage() {
 
   async function handleEcho() {
     if (echoed) return;
+    // Check if already consented for this post
+    const consentKey = `civilian_consent_${id}`;
+    const alreadyConsented = localStorage.getItem(consentKey) === "true";
+    if (!alreadyConsented) {
+      setShowConsentDialog(true);
+      return;
+    }
+    await doEcho();
+  }
+
+  async function doEcho() {
     const saved = JSON.parse(localStorage.getItem("echoed_posts") || "[]");
     if (saved.includes(String(id))) { setEchoed(true); return; }
     if (typeof window !== "undefined") {
@@ -231,6 +245,7 @@ export default function PostPage() {
         m.default({ particleCount: 80, spread: 80, colors: ["#2563eb","#7c3aed","#22c55e"], origin: { y: 0.7 } });
       }).catch(() => {});
     }
+    localStorage.setItem(`civilian_consent_${id}`, "true");
     localStorage.setItem("echoed_posts", JSON.stringify([...saved, String(id)]));
     await fetch("/api/echo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, alreadyEchoed: false }) });
     setPost(p => ({ ...p, echo_count: p.echo_count + 1 }));
@@ -469,6 +484,13 @@ export default function PostPage() {
         </div>
       </div>
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
+      {showConsentDialog && post && (
+        <EchoConsentDialog
+          post={post}
+          onConfirm={() => { setShowConsentDialog(false); doEcho(); }}
+          onCancel={() => setShowConsentDialog(false)}
+        />
+      )}
     </>
   );
 }

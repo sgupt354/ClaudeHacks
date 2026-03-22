@@ -72,6 +72,24 @@ const STEP_ICONS = [
   ),
 ];
 
+const LANGUAGES = [
+  { code: "en", flag: "🇺🇸", label: "English" },
+  { code: "es", flag: "🇪🇸", label: "Español" },
+  { code: "zh", flag: "🇨🇳", label: "中文" },
+  { code: "hi", flag: "🇮🇳", label: "हिन्दी" },
+  { code: "ar", flag: "🇸🇦", label: "العربية" },
+  { code: "vi", flag: "🇻🇳", label: "Tiếng Việt" },
+  { code: "tl", flag: "🇵🇭", label: "Filipino" },
+  { code: "ko", flag: "🇰🇷", label: "한국어" },
+  { code: "pt", flag: "🇧🇷", label: "Português" },
+  { code: "fr", flag: "🇫🇷", label: "Français" },
+  { code: "ru", flag: "🇷🇺", label: "Русский" },
+  { code: "ja", flag: "🇯🇵", label: "日本語" },
+  { code: "de", flag: "🇩🇪", label: "Deutsch" },
+  { code: "so", flag: "🇸🇴", label: "Somali" },
+  { code: "am", flag: "🇪🇹", label: "Amharic" },
+];
+
 const EXAMPLES = [
   { label: "Broken streetlight",  text: "There's a broken streetlight on Rural Road near the library. It's been out for 3 weeks and it's dangerous at night." },
   { label: "Unsafe crosswalk",    text: "The crosswalk markings at Mill Ave and University are completely faded. Kids nearly get hit every morning walking to school." },
@@ -95,6 +113,7 @@ export default function Compose() {
   const [moderating, setModerating] = useState(false);
   const [similarPosts, setSimilarPosts] = useState([]);
   const [showSimilar, setShowSimilar] = useState(false);
+  const [language, setLanguage] = useState("en");
 
   useEffect(() => {
     if (step !== "analyzing") return;
@@ -158,7 +177,7 @@ export default function Compose() {
       const analyzeRes = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaint, location: location || "Tempe, Arizona", imageBase64: imageBase64 || undefined, imageMediaType: imageMediaType || undefined }),
+        body: JSON.stringify({ complaint, location: location || "Tempe, Arizona", imageBase64: imageBase64 || undefined, imageMediaType: imageMediaType || undefined, language }),
       });
       if (!analyzeRes.ok) {
         const errData = await analyzeRes.json().catch(() => ({}));
@@ -234,6 +253,16 @@ export default function Compose() {
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 20px" }}>
           <div className="success-banner">Your issue has been posted and your letter is ready to send</div>
           <div style={cardStyle}>
+            {result.language && result.language !== "en" && (() => {
+              const lang = LANGUAGES.find(l => l.code === result.language);
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.2)", marginBottom: 16, fontSize: 13 }}>
+                  <span>{lang?.flag}</span>
+                  <span style={{ color: "var(--text)", fontWeight: 600 }}>Complaint received in {lang?.label}</span>
+                  <span style={{ color: "var(--muted)", marginLeft: "auto" }}>Letter written in English for the official</span>
+                </div>
+              );
+            })()}
             <div className="result-section" style={{ marginBottom: 16 }}>
               <p className="result-label">Send this letter to</p>
               <div className="official-card">
@@ -282,6 +311,18 @@ export default function Compose() {
 
           <div className="form-group">
             <label className="form-label">What&apos;s the problem?</label>
+            {/* Language selector */}
+            <div style={{ marginBottom: 10 }}>
+              <select
+                value={language}
+                onChange={e => setLanguage(e.target.value)}
+                style={{ padding: "7px 12px", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", outline: "none" }}
+              >
+                {LANGUAGES.map(l => (
+                  <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
+                ))}
+              </select>
+            </div>
             <textarea
               rows={4}
               placeholder="e.g. There's a broken streetlight on Rural Road near the library and it's been out for 3 weeks. It's dangerous at night..."

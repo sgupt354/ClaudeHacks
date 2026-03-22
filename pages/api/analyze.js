@@ -37,7 +37,9 @@ Step 3: Respond with ONLY this JSON — no other text before or after:
   "official_email": "real email address found via search",
   "location_extracted": "location mentioned in complaint",
   "urgency_score": "integer 1-10. Set 8-10 for safety issues (traffic, lighting, structural hazards). Set 6-7 for quality-of-life issues. Set 1-5 for minor inconveniences.",
-  "formal_request": "the full formal letter text, 3-4 paragraphs, citing the real law or ordinance you found, written from the perspective of concerned residents. Sign as Concerned Residents."
+  "language": "ISO 639-1 code of the complaint language (en, es, zh, vi, hi, ar, tl, ko, pt, fr, ru, ja, de, so, am etc)",
+  "official_language": "ISO 639-1 code of the official government language for that region",
+  "formal_request": "the full formal letter text, 3-4 paragraphs, citing the real law or ordinance you found, written from the perspective of concerned residents. Sign as Concerned Residents. Write in English for US complaints. If location is outside USA, write in the official_language of that region."
 }
 
 CRITICAL: Your final response must be ONLY the JSON object. No markdown, no explanation, no text before or after the JSON.`;
@@ -45,7 +47,7 @@ CRITICAL: Your final response must be ONLY the JSON object. No markdown, no expl
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { complaint, location, imageBase64, imageMediaType } = req.body;
+  const { complaint, location, imageBase64, imageMediaType, language } = req.body;
   if (!complaint?.trim()) return res.status(400).json({ error: "No complaint" });
 
   // Content policy check
@@ -70,7 +72,7 @@ export default async function handler(req, res) {
     }
     userContent.push({
       type: "text",
-      text: `Community complaint: ${complaint}\n\nLocation: ${location || "Tempe, Arizona"}\n\nDo exactly 2 web searches, then respond with ONLY the JSON object described in your instructions.`,
+      text: `Community complaint: ${complaint}\n\nLocation: ${location || "Tempe, Arizona"}\nComplaint language: ${language || "en"}\n\nDo exactly 2 web searches, then respond with ONLY the JSON object described in your instructions.`,
     });
 
     const message = await client.messages.create({
