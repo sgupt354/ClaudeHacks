@@ -1,93 +1,160 @@
-# Civilian
+<div align="center">
 
-**Civilian** is an AI-powered civic engagement platform that helps residents report local government issues, get connected to the right officials, and build community around shared problems.
+<img src="https://img.shields.io/badge/Built%20for-HackASU-blue?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Powered%20by-Claude%20AI-orange?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge" />
 
-Live: [https://civic-app-nine.vercel.app](https://civic-app-nine.vercel.app)  
-GitHub: [https://github.com/ARasugit20/ClaudeHacks](https://github.com/ARasugit20/ClaudeHacks)
+# 🏛️ Civilian
+
+### *Your voice. Your city. Amplified by AI.*
+
+**Civilian** is an AI-powered civic engagement platform that turns everyday frustration into formal government action — in any language, for any resident, in under 2 minutes.
+
+<br/>
+
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-civic--app--nine.vercel.app-22c55e?style=for-the-badge)](https://civic-app-nine.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-sgupt354%2FClaudeHacks-181717?style=for-the-badge&logo=github)](https://github.com/sgupt354/ClaudeHacks)
+
+</div>
 
 ---
 
-## The Problem
+## 🧩 The Problem
 
-Most people notice broken streetlights, dangerous potholes, or unsafe crosswalks — but never report them. The barriers are real: they don't know who to contact, how to write a formal complaint, or whether anyone else cares. Issues go unresolved for months.
+> *Maria walks past the same broken streetlight every night. It's been dark for six weeks. Her neighbor's kid nearly got hit by a car last month.*
+>
+> *She wants to report it — but she doesn't know who to call. She doesn't speak English fluently. She doesn't know what department handles streetlights, or how to write a formal complaint.*
+>
+> *So she does nothing. The light stays broken.*
 
-## What Civilian Does
+This is the **civic participation gap**. It's not apathy — it's friction. And it hits hardest on people who are already underserved: non-English speakers, first-generation residents, anyone who's never had to navigate government bureaucracy.
 
-1. You describe your problem in plain language (any language)
-2. AI finds the real responsible official, writes a formal letter citing actual city ordinances, and identifies the issue type
-3. Your complaint is posted to a community feed where neighbors can echo it, building collective pressure
-4. You can track similar issues, see what's been resolved, and connect with others facing the same problem
+The people who need their government to listen the most are the ones least equipped to make it happen.
+
+**Civilian exists to close that gap.**
 
 ---
 
-## Tech Stack
+## ✨ How It Works
+
+```
+You describe the problem  →  AI does the rest  →  Community amplifies it
+```
+
+**1. Describe it in plain language** — in any of 70+ languages, as casually as you want.
+
+**2. AI finds the right official** — Claude searches the web for the real, current responsible official in your city, looks up the actual municipal codes that apply, and writes a formal professional complaint letter on your behalf.
+
+**3. Community rallies behind you** — Your issue is posted to a public feed. Neighbors who've seen the same pothole, the same broken light, the same unsafe crosswalk can echo your complaint. One voice is easy to ignore. Fifty voices from the same neighborhood is a pattern that demands a response.
+
+---
+
+## 🌍 Real World Impact
+
+Every complaint submitted through Civilian:
+
+| What happens | Why it matters |
+|---|---|
+| Goes to a **named, real official** | Not a generic inbox that gets ignored |
+| Cites the **specific city ordinance** being violated | Officials can't claim ignorance |
+| Shows a **community echo count** | Turns individual frustration into collective pressure |
+| Is **publicly visible** | Creates transparency and accountability |
+| Can be **marked resolved** | Closes the loop — residents see results |
+
+When ten people echo the same pothole report, it signals a neighborhood problem. The urgency score rises. The issue becomes harder to deprioritize.
+
+---
+
+## ⚖️ Ethics & Fairness
+
+Civilian was built with a deliberate commitment to not making existing inequalities worse.
+
+**🌐 Language equity** — 70+ languages supported. A resident who speaks Somali, Gujarati, or Haitian Creole gets the same access as an English speaker. The language barrier is removed entirely.
+
+**⚖️ No bias in routing** — The AI finds officials based on location and issue type, not who the user is. A complaint from a low-income neighborhood gets the same quality letter and the same official contact as one from an affluent area.
+
+**🛡️ Intent-based moderation, not keyword policing** — The system understands that a frustrated resident venting about a dangerous road is not the same as someone being abusive. It asks one question: *is this message appropriate to send to a government official?* Legitimate civic frustration passes. Actual abuse doesn't.
+
+**🔒 No personal data required** — No accounts, no sign-ups. The barrier to participation is as low as possible.
+
+**🔓 Fail-open design** — If any AI service is unavailable, the system defaults to allowing the complaint through. Civic participation is never silently blocked by a technical failure.
+
+---
+
+## 🛠️ Tech Stack
+
+<div align="center">
 
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (Pages Router) |
-| Frontend | React 19, Tailwind CSS 4 |
-| AI | Anthropic Claude (`claude-sonnet-4-6` for analysis, `claude-haiku-4-5` for moderation/translation) |
-| Database | InsForge (Postgres-backed BaaS) |
-| Maps | Mapbox GL + react-map-gl, Leaflet |
+| Frontend | React 19 + Tailwind CSS 4 |
+| AI — Analysis | Claude `claude-sonnet-4-6` with live web search |
+| AI — Moderation | Claude `claude-haiku-4-5` |
+| AI — Translation | Claude `claude-haiku-4-5` |
+| Database | InsForge (Postgres BaaS) |
+| Maps | Mapbox GL + react-map-gl + Leaflet |
 | Email | Resend |
-| 3D / Animation | Three.js, @react-three/fiber, Framer Motion |
+| Animation | Framer Motion + Three.js |
 | PDF Export | jsPDF |
 | Deployment | Vercel |
 
----
-
-## Key Features
-
-- **AI Complaint Analysis** — Claude searches the web for real government contacts, cites city ordinances, and writes a formal letter on your behalf
-- **AI Moderation** — Intent-based content moderation using Claude Haiku; blocks inappropriate messages before they reach officials
-- **AI Translation** — Write in any of 70+ languages; complaints are translated automatically
-- **Community Feed** — Forum where residents see, echo, and discuss local issues
-- **Interactive Map** — All reported issues plotted on a Mapbox map by location
-- **Issue Reels** — Short-form vertical scroll of recent community issues
-- **Search** — Full-text search across all reported issues
-- **Similar Issues** — After submitting, see if neighbors have reported the same problem
-- **Email to Officials** — Formal complaint emails sent directly via Resend
-- **Profile & Tracking** — Track issues you've raised or echoed
+</div>
 
 ---
 
-## API Routes
+## 🗺️ Pages
+
+| Page | What it does |
+|---|---|
+| `/` | Landing — hero, stats, how it works |
+| `/compose` | Raise an issue — the core AI flow |
+| `/forum` | Community feed of all issues |
+| `/map` | All issues plotted on an interactive map |
+| `/search` | Full-text search across all issues |
+| `/reels` | Short-form vertical scroll of recent issues |
+| `/post/[id]` | Single issue — details, echoes, comments |
+| `/similar` | Issues matching yours after you submit |
+| `/profile` | Your raised and echoed issues |
+
+---
+
+## 🔌 API Routes
 
 | Route | Purpose |
 |---|---|
-| `POST /api/analyze` | Claude analyzes complaint, finds official, writes formal letter |
-| `POST /api/moderate` | Claude Haiku checks if message is appropriate to send to officials |
-| `POST /api/translate` | Claude Haiku translates complaint to English |
-| `GET/POST /api/posts` | Fetch all posts or create a new one |
-| `GET /api/search` | Full-text search across posts |
-| `GET /api/similar` | Find posts with matching issue type and location |
-| `POST /api/echo` | Echo (upvote) a post |
-| `GET/POST /api/comments` | Fetch or add comments on a post |
-| `POST /api/send-email` | Send formal complaint email to official via Resend |
-| `POST /api/resolve` | Mark an issue as resolved |
-| `GET /api/contact` | Lookup official contact info |
+| `POST /api/analyze` | Claude finds official, cites ordinance, writes formal letter |
+| `POST /api/moderate` | Intent-based content moderation |
+| `POST /api/translate` | Translate complaint to English |
+| `GET/POST /api/posts` | Fetch all posts or create one |
+| `GET /api/search` | Full-text search |
+| `GET /api/similar` | Posts matching issue type + location |
+| `POST /api/echo` | Upvote / echo a post |
+| `GET/POST /api/comments` | Comments on a post |
+| `POST /api/send-email` | Send formal complaint to official via Resend |
+| `POST /api/resolve` | Mark issue as resolved |
 
 ---
 
-## Local Setup
+## 🚀 Local Setup
 
 ### Prerequisites
 
 - Node.js 18+
-- An [Anthropic API key](https://console.anthropic.com/)
-- An [InsForge](https://insforge.app) project (for the database)
-- A [Resend](https://resend.com) API key (for email)
-- A [Mapbox](https://mapbox.com) token (for the map)
+- [Anthropic API key](https://console.anthropic.com/)
+- [InsForge](https://insforge.app) project
+- [Resend](https://resend.com) API key
+- [Mapbox](https://mapbox.com) token
 
 ### Install & Run
 
 ```bash
-git clone https://github.com/ARasugit20/ClaudeHacks.git
+git clone https://github.com/sgupt354/ClaudeHacks.git
 cd ClaudeHacks/civic-app
 npm install
 ```
 
-Create a `.env.local` file:
+Create `.env.local`:
 
 ```env
 ANTHROPIC_API_KEY=your_anthropic_key
@@ -99,28 +166,25 @@ NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token
 
 ```bash
 npm run dev
+# open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-### Database
-
-The app uses InsForge (Postgres). The `posts` table schema:
+### Database Schema
 
 ```sql
 create table posts (
-  id uuid primary key default gen_random_uuid(),
-  complaint text,
+  id            uuid primary key default gen_random_uuid(),
+  complaint     text,
   formal_request text,
-  department text,
+  department    text,
   official_name text,
   official_email text,
-  issue_type text,
-  location text,
+  issue_type    text,
+  location      text,
   urgency_score int,
-  echo_count int default 0,
-  resolved boolean default false,
-  created_at timestamptz default now()
+  echo_count    int default 0,
+  resolved      boolean default false,
+  created_at    timestamptz default now()
 );
 ```
 
@@ -132,32 +196,36 @@ node scripts/seed.js
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 civic-app/
 ├── pages/
 │   ├── index.js          # Landing page
-│   ├── compose.js        # Raise an issue (main flow)
+│   ├── compose.js        # Raise an issue (core AI flow)
 │   ├── forum.js          # Community feed
 │   ├── map.js            # Issues map
-│   ├── search.js         # Search issues
+│   ├── search.js         # Search
 │   ├── reels.js          # Issue reels
-│   ├── profile.js        # User profile & tracked issues
-│   ├── post/[id].js      # Single issue page
-│   ├── similar.js        # Similar issues after submit
+│   ├── profile.js        # User profile
+│   ├── post/[id].js      # Single issue
+│   ├── similar.js        # Similar issues
 │   └── api/              # All API routes
 ├── components/
-│   ├── Nav.js            # Navigation
-│   └── Toast.js          # Toast notifications
+│   ├── Nav.js
+│   └── Toast.js
 ├── lib/
-│   └── insforge.js       # InsForge client
+│   └── insforge.js       # Database client
 └── styles/
     └── globals.css
 ```
 
 ---
 
-## Built for HackASU
+<div align="center">
 
-Civilian was built for HackASU. The core thesis: AI should lower the barrier for civic participation, not just automate tasks. Every resident deserves to have their voice heard by the right person, in the right format, with community backing.
+Built with care for HackASU.
+
+*Every resident deserves to have their voice heard by the right person, in the right format, with their community behind them.*
+
+</div>
