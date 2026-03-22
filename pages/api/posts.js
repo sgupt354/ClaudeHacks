@@ -1,4 +1,4 @@
-import { insforge } from "../../lib/supabase";
+import { insforge } from "../../lib/insforge";
 
 const FALLBACK_POSTS = [
   { id: "fallback-1", complaint: "The crosswalk at Mill Ave and University Dr has no lighting. Kids nearly get hit every morning walking to school.", issue_type: "traffic_safety", location: "Mill Ave & University Dr, Tempe", echo_count: 34, status: "pending", lat: 33.4255, lng: -111.9400, author_name: "Maria Santos", author_role: "Parent & Resident", urgency_score: 9, created_at: new Date().toISOString() },

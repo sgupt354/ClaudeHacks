@@ -1,4 +1,4 @@
-import { insforge } from "../../lib/supabase";
+import { insforge } from "../../lib/insforge";
 
 function extractRegion(loc) {
   if (!loc) return null;

@@ -1,4 +1,4 @@
-import { insforge } from "../../lib/supabase";
+import { insforge } from "../../lib/insforge";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
