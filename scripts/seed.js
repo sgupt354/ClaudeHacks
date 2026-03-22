@@ -1,0 +1,163 @@
+const { createClient } = require("@insforge/sdk");
+
+const client = createClient({
+  baseUrl: "https://7wjuii85.us-west.insforge.app",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3OC0xMjM0LTU2NzgtOTBhYi1jZGVmMTIzNDU2NzgiLCJlbWFpbCI6ImFub25AaW5zZm9yZ2UuY29tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDEwNjF9.6RxaWSrmmfBQIT85GqA9EW4yl1RAEUlX2sXpNMr0Fh8",
+});
+
+const posts = [
+  {
+    complaint: "There is no crosswalk near Kyrene Elementary and kids are walking in the road every morning",
+    formal_request: "Dear Tempe Public Works Director, We formally request installation of a marked crosswalk at Kyrene Road and Warner Road. Per Arizona Revised Statute § 28-792, pedestrian safety near school zones is a priority obligation. Sincerely, 23 Concerned Tempe Residents",
+    department: "Tempe Public Works",
+    official_name: "Kevin Mattingly, Public Works Director",
+    official_email: "publicworks@tempe.gov",
+    issue_type: "traffic_safety",
+    location: "Kyrene Road & Warner Road, Tempe",
+    echo_count: 23,
+    status: "pending",
+    lat: 33.3600,
+    lng: -111.9280,
+    author_name: "Maria Santos",
+    author_role: "Parent & Resident",
+    urgency_score: 9,
+  },
+  {
+    complaint: "The streetlight on Rural Road near the library has been broken for 3 weeks and its dangerous at night",
+    formal_request: "Dear Tempe Street Lighting Division, We formally request urgent repair of the malfunctioning street light at 3500 S Rural Road. Non-functional for 21 days per Tempe Municipal Code 18-32. Sincerely, 15 Tempe Residents",
+    department: "Tempe Street Lighting Division",
+    official_name: "City of Tempe 311 Service",
+    official_email: "311@tempe.gov",
+    issue_type: "street_lighting",
+    location: "3500 S Rural Road, Tempe",
+    echo_count: 15,
+    status: "sent",
+    lat: 33.3978,
+    lng: -111.9307,
+    author_name: "James Thompson",
+    author_role: "Business Owner",
+    urgency_score: 7,
+  },
+  {
+    complaint: "The park on McClintock has no shade and its impossible to use in summer especially for kids",
+    formal_request: "Dear Tempe Parks and Recreation, We formally request installation of shade structures at McClintock Park. Summer temperatures exceed 140F per Tempe Parks Master Plan 2023. Sincerely, 31 Tempe Families",
+    department: "Tempe Parks and Recreation",
+    official_name: "Jody Doyle, Parks Director",
+    official_email: "parks@tempe.gov",
+    issue_type: "parks_facilities",
+    location: "1800 N McClintock Drive, Tempe",
+    echo_count: 31,
+    status: "pending",
+    lat: 33.4255,
+    lng: -111.9400,
+    author_name: "Chen Wei",
+    author_role: "Graduate Student",
+    urgency_score: 6,
+  },
+  {
+    complaint: "Cars are running the red light at Mill Ave and University constantly especially late at night",
+    formal_request: "Dear Tempe Traffic Engineering, We formally request signal timing review at Mill Avenue and University Drive. Residents documented 47 violations per ARS § 28-771. Sincerely, 47 Mill Ave Residents",
+    department: "Tempe Traffic Engineering",
+    official_name: "Traffic Engineering Division",
+    official_email: "traffic@tempe.gov",
+    issue_type: "traffic_safety",
+    location: "Mill Ave & University Drive, Tempe",
+    echo_count: 47,
+    status: "pending",
+    lat: 33.4152,
+    lng: -111.8315,
+    author_name: "Patricia Moore",
+    author_role: "Retired Teacher",
+    urgency_score: 8,
+  },
+  {
+    complaint: "There is a huge pothole on Apache Blvd that has been there for months and damaged my tire",
+    formal_request: "Dear Tempe Street Maintenance, We formally request repair of road defect at 2200 E Apache Boulevard per Arizona Revised Statute § 28-1103. Sincerely, 19 Apache Blvd Residents",
+    department: "Tempe Street Maintenance",
+    official_name: "Street Maintenance Division",
+    official_email: "streets@tempe.gov",
+    issue_type: "road_maintenance",
+    location: "2200 E Apache Boulevard, Tempe",
+    echo_count: 19,
+    status: "sent",
+    lat: 33.4152,
+    lng: -111.9093,
+    author_name: "David Kim",
+    author_role: "Commuter",
+    urgency_score: 7,
+  },
+  {
+    complaint: "Speeding cars on Rural Road between Baseline and Elliot are putting kids at risk near elementary schools",
+    formal_request: "Dear Tempe Traffic Engineering, We formally request speed feedback signs on Rural Road between Baseline and Elliot Road per ARS § 28-797. Sincerely, 56 Rural Road Families",
+    department: "Tempe Traffic Engineering",
+    official_name: "Traffic Engineering Division",
+    official_email: "traffic@tempe.gov",
+    issue_type: "traffic_safety",
+    location: "Rural Road between Baseline & Elliot, Tempe",
+    echo_count: 56,
+    status: "sent",
+    lat: 33.3784,
+    lng: -111.9318,
+    author_name: "Sarah Johnson",
+    author_role: "School Parent",
+    urgency_score: 9,
+  },
+  {
+    complaint: "The bus stop on Southern Ave has no shelter and elderly people stand in 110 degree heat",
+    formal_request: "Dear Valley Metro and Tempe Transportation, We formally request shade shelter at Southern Avenue and McClintock Drive per ADA Title II. Sincerely, 41 South Tempe Residents",
+    department: "Tempe Transportation",
+    official_name: "Transportation Director",
+    official_email: "transportation@tempe.gov",
+    issue_type: "other",
+    location: "Southern Ave & McClintock Dr, Tempe",
+    echo_count: 41,
+    status: "pending",
+    lat: 33.3890,
+    lng: -111.9400,
+    author_name: "Rosa Martinez",
+    author_role: "Senior Resident",
+    urgency_score: 7,
+  },
+  {
+    complaint: "Hay un bache enorme en la calle Apache Blvd cerca de Price Road. Ha dañado varios neumáticos y nadie lo ha reparado en 3 meses.",
+    formal_request: "Estimado Director de Obras Públicas de Tempe, Los residentes solicitamos formalmente la reparación del bache en Apache Blvd y Price Road. Lleva 3 meses sin reparar. Atentamente, 28 Residentes de Tempe",
+    department: "Tempe Street Maintenance",
+    official_name: "Street Maintenance Division",
+    official_email: "streets@tempe.gov",
+    issue_type: "road_maintenance",
+    location: "Apache Blvd & Price Rd, Tempe",
+    echo_count: 28,
+    status: "pending",
+    language: "es",
+    lat: 33.4152,
+    lng: -111.9093,
+    author_name: "Carlos M.",
+    author_role: "Residente",
+    urgency_score: 7,
+  },
+];
+
+async function seed() {
+  console.log("Testing connection...");
+  const { data: test, error: testErr } = await client.database.from("posts").select("id").limit(1);
+  if (testErr) {
+    console.error("Connection/table error:", testErr);
+    process.exit(1);
+  }
+  console.log("Connected! Existing rows:", test?.length ?? 0);
+
+  if (test && test.length > 0) {
+    console.log("Table already has data — skipping seed to avoid duplicates.");
+    process.exit(0);
+  }
+
+  console.log(`Seeding ${posts.length} posts...`);
+  const { data, error } = await client.database.from("posts").insert(posts).select();
+  if (error) {
+    console.error("Seed error:", error);
+    process.exit(1);
+  }
+  console.log(`Seeded successfully: ${data?.length} posts inserted`);
+}
+
+seed();
