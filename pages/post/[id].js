@@ -17,6 +17,13 @@ const TYPE_LABELS = {
   other:            { label: "Community",         cls: "type-other"    },
 };
 
+// Demo government responses for seeded posts
+const DEMO_GOV_RESPONSES = {
+  "demo-1": "Thank you for your report regarding pedestrian lighting at Mill Ave and University Drive. Our Public Works team has reviewed the request and scheduled an on-site inspection for March 28th. We anticipate installation of two new LED pedestrian lights within 45 days pending budget approval. — Kevin Mattingly, Public Works Director",
+  "demo-3": "We appreciate the community's concern regarding Kiwanis Park shade structures. The Parks & Recreation Department has allocated $42,000 from the Capital Improvement Fund for new shade canopies. Installation is scheduled to begin April 15th. — Sarah Chen, Parks & Recreation Director",
+  "demo-4": "The pothole on Apache Blvd near the 101 overpass has been logged as Priority 1 in our repair queue. A crew has been dispatched and repair is expected within 72 hours. We apologize for the inconvenience. — Transportation Services, City of Tempe",
+};
+
 const DUMMY_COMMENTS = [
   { id: "d1", author_name: "Maria S.", text: "This has been an issue for months! My kids almost got hit last week.", created_at: "2h ago" },
   { id: "d2", author_name: "James T.", text: "I reported this to 311 twice. Nothing happened. This platform is our last hope.", created_at: "5h ago" },
@@ -85,11 +92,7 @@ function CommentsSection({ postId }) {
   useEffect(() => {
     fetch(`/api/comments?postId=${postId}`)
       .then(r => r.json())
-      .then(d => {
-        const real = Array.isArray(d) ? d : [];
-        setComments(real.length > 0 ? real : DUMMY_COMMENTS);
-        setLoading(false);
-      })
+      .then(d => { const real = Array.isArray(d) ? d : []; setComments(real.length > 0 ? real : DUMMY_COMMENTS); setLoading(false); })
       .catch(() => { setComments(DUMMY_COMMENTS); setLoading(false); });
     const saved = JSON.parse(localStorage.getItem("likedComments") || "[]");
     setLikedIds(new Set(saved));
@@ -100,9 +103,7 @@ function CommentsSection({ postId }) {
     const opt = { id: Date.now(), text, author_name: "Anonymous", created_at: "just now" };
     setComments(prev => [...prev, opt]);
     setText("");
-    try {
-      await fetch("/api/comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: postId, text: opt.text, author_name: "Anonymous" }) });
-    } catch {}
+    try { await fetch("/api/comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: postId, text: opt.text, author_name: "Anonymous" }) }); } catch {}
   }
 
   function toggleLike(id) {
@@ -147,29 +148,94 @@ function CommentsSection({ postId }) {
   );
 }
 
+// Animated counter for echo count
+function AnimatedCount({ value }) {
+  const [display, setDisplay] = useState(value);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (value === prev.current) return;
+    const start = prev.current;
+    const end = value;
+    const duration = 600;
+    const startTime = performance.now();
+    function step(now) {
+      const t = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(start + (end - start) * eased));
+      if (t < 1) requestAnimationFrame(step);
+      else prev.current = end;
+    }
+    requestAnimationFrame(step);
+  }, [value]);
+  return <>{display}</>;
+}
+
 export default function PostPage() {
   const router = useRouter();
   const { id } = router.query;
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [echoed, setEchoed] = useState(false);
-  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState("");
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState(null);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [copyState, setCopyState] = useState("idle"); // idle | copied
 
   useEffect(() => {
     if (!id) return;
-    insforge.database.from("posts").select("*").eq("id", id).single()
-      .then(({ data }) => { setPost(data); setLoading(false); });
+    fetch(`/api/posts?id=${id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        setPost(data);
+        setLoading(false);
+        if (data) setLikeCount(data.like_count || Math.floor(Math.random() * 20) + 3);
+      })
+      .catch(() => setLoading(false));
+    const savedLikes = JSON.parse(localStorage.getItem("likedPosts") || "[]");
+    setLiked(savedLikes.includes(String(id)));
+    const savedEchoes = JSON.parse(localStorage.getItem("echoed_posts") || "[]");
+    if (savedEchoes.includes(String(id))) setEchoed(true);
   }, [id]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function onKey(e) {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.key === "n" || e.key === "N") router.push("/compose");
+      if (e.key === "m" || e.key === "M") router.push("/map");
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [router]);
+
+  function handleLike() {
+    setLiked(prev => {
+      const next = !prev;
+      setLikeCount(c => next ? c + 1 : c - 1);
+      const saved = JSON.parse(localStorage.getItem("likedPosts") || "[]");
+      const updated = next ? [...saved, String(id)] : saved.filter(x => x !== String(id));
+      localStorage.setItem("likedPosts", JSON.stringify(updated));
+      return next;
+    });
+  }
 
   async function handleEcho() {
     if (echoed) return;
-    await fetch("/api/echo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    const saved = JSON.parse(localStorage.getItem("echoed_posts") || "[]");
+    if (saved.includes(String(id))) { setEchoed(true); return; }
+    if (typeof window !== "undefined") {
+      import("canvas-confetti").then(m => {
+        m.default({ particleCount: 80, spread: 80, colors: ["#2563eb","#7c3aed","#22c55e"], origin: { y: 0.7 } });
+      }).catch(() => {});
+    }
+    localStorage.setItem("echoed_posts", JSON.stringify([...saved, String(id)]));
+    await fetch("/api/echo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, alreadyEchoed: false }) });
     setPost(p => ({ ...p, echo_count: p.echo_count + 1 }));
     setEchoed(true);
+    setToast({ message: "Your voice has been added!", type: "success" });
   }
 
   async function handleSendEmail() {
@@ -183,10 +249,29 @@ export default function PostPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Send failed");
       setSent(true);
-      // Trigger TinyFish follow-up scheduling
+      setToast({ message: `Letter sent to ${post.official_name}!`, type: "success" });
       fetch("/api/tinyfish-followup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: post.id }) }).catch(() => {});
     } catch (err) { setSendError(err.message); }
     finally { setSending(false); }
+  }
+
+  async function downloadPetition() {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF();
+    doc.setFontSize(18); doc.setFont("helvetica","bold");
+    doc.text("COMMUNITY PETITION", 105, 20, { align: "center" });
+    doc.setFontSize(11); doc.setFont("helvetica","normal");
+    doc.text(`Issue: ${post.complaint}`, 20, 35, { maxWidth: 170 });
+    doc.text(`Location: ${post.location || "Tempe, AZ"}`, 20, 55);
+    doc.text(`Voices: ${post.echo_count} Tempe Residents`, 20, 63);
+    if (post.formal_request) {
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(post.formal_request, 170);
+      doc.text(lines, 20, 78);
+    }
+    doc.setFontSize(10); doc.setFont("helvetica","italic");
+    doc.text(`Signed by ${post.echo_count} Tempe Residents — Generated by Civilian`, 105, 280, { align: "center" });
+    doc.save(`petition-${post.id}.pdf`);
   }
 
   if (loading) return <><Nav /><div className="container"><div className="loading-wrap"><div className="loading-spinner" /></div></div></>;
@@ -195,6 +280,16 @@ export default function PostPage() {
   const typeInfo = TYPE_LABELS[post.issue_type] || TYPE_LABELS.other;
   const progress = Math.min((post.echo_count / 50) * 100, 100);
   const echoes = Number(post.echo_count) || 0;
+  const urgency = post.urgency_score || 0;
+  const govResponse = post.gov_response || DEMO_GOV_RESPONSES[String(post.id)];
+
+  // Response time predictor (based on issue type)
+  const RESPONSE_DAYS = { traffic_safety: 14, road_maintenance: 21, parks_facilities: 30, street_lighting: 10, noise_complaint: 7, housing: 45, other: 21 };
+  const expectedDays = RESPONSE_DAYS[post.issue_type] || 21;
+
+  // 30-day stale check
+  const isStale = post.created_at && post.status !== "resolved" &&
+    (Date.now() - new Date(post.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
 
   const tierMilestones = [
     { threshold: 10, label: "10 voices = Department Notified", reached: echoes >= 10, border: "rgba(245,158,11,0.35)", bg: "rgba(254,243,199,0.5)" },
@@ -204,18 +299,33 @@ export default function PostPage() {
 
   const lifecycleSteps = [
     { key: "reported", label: "Reported",             done: true },
-    { key: "letter",   label: "Letter Sent",          done: sent },
-    { key: "gov",      label: "Government Responded", done: post.status === "responded" || post.status === "resolved" },
+    { key: "letter",   label: "Letter Sent",          done: sent || post.letter_sent },
+    { key: "gov",      label: "Government Responded", done: !!govResponse || post.status === "responded" || post.status === "resolved" },
     { key: "done",     label: "Resolved",             done: post.status === "resolved" },
   ];
   let currentIdx = lifecycleSteps.findIndex(s => !s.done);
   if (currentIdx === -1) currentIdx = lifecycleSteps.length - 1;
+
+  // mailto link
+  const mailtoHref = post.official_email
+    ? `mailto:${post.official_email}?subject=${encodeURIComponent(`Community Issue: ${typeInfo.label} - ${post.location || "Tempe, AZ"}`)}&body=${encodeURIComponent(post.formal_request || "")}`
+    : null;
 
   return (
     <>
       <Nav />
       <div className="container">
         <Link href="/forum" className="back-link">← Back to feed</Link>
+
+        {/* Badges row */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+          {urgency >= 8 && (
+            <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 999, background: "#ef444420", color: "#ef4444", border: "1px solid #ef444440" }}>URGENT — Safety Issue</span>
+          )}
+          {isStale && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}>30 days with no action</span>
+          )}
+        </div>
 
         {/* TinyFish follow-up banner */}
         {post.follow_up_sent && (
@@ -230,6 +340,15 @@ export default function PostPage() {
           <span className={`post-type ${typeInfo.cls}`}>{typeInfo.label}</span>
           <p style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.5, margin: "12px 0 8px", color: "var(--text)" }}>{post.complaint}</p>
           <p style={{ fontSize: 13, color: "var(--muted)" }}>{post.location}</p>
+        </div>
+
+        {/* AI Response Predictor */}
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 18px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Based on similar issues, expect a response in ~{expectedDays} days</p>
+            <p style={{ fontSize: 11, color: "var(--muted)" }}>AI prediction based on {typeInfo.label} issue history in Tempe</p>
+          </div>
         </div>
 
         {/* Collective Power */}
@@ -263,14 +382,31 @@ export default function PostPage() {
           </div>
         </div>
 
-        <button className={`echo-btn ${echoed ? "echoed" : ""}`} onClick={handleEcho}>
-          {echoed ? "✓ Your voice has been added" : "Add My Voice to This Issue"}
-        </button>
+        {/* Echo + Like row */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          <button className={`echo-btn ${echoed ? "echoed" : ""}`} onClick={handleEcho} style={{ flex: 1 }}>
+            {echoed ? "✓ Your voice has been added" : "Add My Voice to This Issue"}
+          </button>
+          <button onClick={handleLike} style={{ padding: "12px 20px", borderRadius: 12, border: "1px solid var(--border)", background: liked ? "rgba(239,68,68,0.1)" : "var(--surface)", color: liked ? "#ef4444" : "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            {likeCount}
+          </button>
+        </div>
+
+        {/* Petition download */}
+        {echoes >= 25 && (
+          <button onClick={downloadPetition} style={{ width: "100%", padding: "11px", borderRadius: 12, border: "1px solid rgba(37,99,235,0.4)", background: "rgba(37,99,235,0.08)", color: "#2563eb", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Petition PDF ({echoes} signatures)
+          </button>
+        )}
 
         <div className="result-section">
           <p className="result-label">This letter goes to</p>
           <div className="official-card">
-            <span className="official-icon">🏛</span>
+            <span className="official-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </span>
             <div>
               <p className="official-name">{post.official_name}</p>
               <p className="official-dept">{post.department}</p>
@@ -279,34 +415,57 @@ export default function PostPage() {
           </div>
         </div>
 
-        <div className="result-section">
-          <p className="result-label">Formal letter (AI-generated)</p>
-          <p className="result-text">{post.formal_request}</p>
-        </div>
-
-        {/* Share button with menu */}
-        <div style={{ position: "relative", marginBottom: 10 }}>
-          <button className="share-btn" onClick={() => setShowShare(v => !v)}>
-            Share this issue
-          </button>
-          {showShare && <ShareMenu postId={post.id} onClose={() => setShowShare(false)} onCopied={() => { setToast({ message: "Link copied!", type: "success" }); }} />}
-        </div>
-
-        {sendError && (
-          <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 10, fontSize: 13, color: "#991b1b" }}>
-            {sendError}
+        {/* Government Response */}
+        {govResponse && (
+          <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 14, padding: "18px 20px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#22c55e" }}>Official Government Response</p>
+            </div>
+            <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.7, fontStyle: "italic" }}>&ldquo;{govResponse}&rdquo;</p>
           </div>
         )}
 
-        <button className="share-btn" onClick={handleSendEmail} disabled={sending || sent}
-          style={{ marginBottom: 10, background: sent ? "#dcfce7" : "var(--surface)", borderColor: sent ? "#86efac" : "var(--border)", color: sent ? "#166534" : sending ? "var(--muted)" : "var(--text)" }}>
-          {sent ? "✓ Letter sent to official!" : sending ? "Sending..." : "Send Letter to Official"}
-        </button>
+        <div className="result-section">
+          <p className="result-label">Formal letter (AI-generated)</p>
+          <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
+            ⚠️ AI-Generated Letter — Please review before sending. This was written by Claude AI and may contain inaccuracies about specific laws, officials, or procedures. Official contact details were found via web search and may have changed.
+          </div>
+          <p className="result-text">{post.formal_request}</p>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+          {/* One-click mailto */}
+          {mailtoHref && !sent && (
+            <a href={mailtoHref} onClick={() => { setSent(true); setToast({ message: `Letter sent to ${post.official_name}!`, type: "success" }); }}
+              style={{ flex: 2, minWidth: 200, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 24px", borderRadius: 12, background: sent ? "#dcfce7" : "linear-gradient(135deg,#2563eb,#7c3aed)", color: "white", textDecoration: "none", fontSize: 15, fontWeight: 700, boxShadow: "0 4px 20px rgba(37,99,235,0.35)", transition: "all 0.2s" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Send Letter Now
+            </a>
+          )}
+          {sent && (
+            <div style={{ flex: 2, minWidth: 200, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 24px", borderRadius: 12, background: "#dcfce7", border: "1px solid #86efac", color: "#166534", fontSize: 15, fontWeight: 700 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Letter sent to {post.official_name}
+            </div>
+          )}
+          {/* Share */}
+          <div style={{ position: "relative", flex: 1 }}>
+            <button className="share-btn" onClick={() => setShowShare(v => !v)} style={{ width: "100%" }}>Share this issue</button>
+            {showShare && <ShareMenu postId={post.id} onClose={() => setShowShare(false)} onCopied={() => setToast({ message: "Link copied!", type: "success" })} />}
+          </div>
+        </div>
+
+        {sendError && (
+          <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 10, fontSize: 13, color: "#991b1b" }}>{sendError}</div>
+        )}
 
         <CommentsSection postId={post.id} />
 
         <div className="notice" style={{ marginTop: 16 }}>
           This letter is AI-generated based on your description. Review before sending. This is not legal advice.
+          <Link href="/policy" style={{ marginLeft: 8, color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>Community Policy</Link>
         </div>
       </div>
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}

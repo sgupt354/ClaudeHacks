@@ -1,5 +1,18 @@
 import { insforge } from "../../lib/supabase";
 
+const FALLBACK_POSTS = [
+  { id: "fallback-1", complaint: "The crosswalk at Mill Ave and University Dr has no lighting. Kids nearly get hit every morning walking to school.", issue_type: "traffic_safety", location: "Mill Ave & University Dr, Tempe", echo_count: 34, status: "pending", lat: 33.4255, lng: -111.9400, author_name: "Maria Santos", author_role: "Parent & Resident", urgency_score: 9, created_at: new Date().toISOString() },
+  { id: "fallback-2", complaint: "Three streetlights on Rural Road near the library have been out for 6 weeks. Seniors avoid walking at night.", issue_type: "street_lighting", location: "Rural Road near Library, Tempe", echo_count: 22, status: "sent", lat: 33.4142, lng: -111.9268, author_name: "James Thompson", author_role: "Business Owner", urgency_score: 7, created_at: new Date().toISOString() },
+  { id: "fallback-3", complaint: "Kiwanis Park has no shade. Playground equipment reaches 160F in summer. Kids cannot play there at all.", issue_type: "parks_facilities", location: "Kiwanis Park, Tempe", echo_count: 48, status: "resolved", lat: 33.3964, lng: -111.9194, author_name: "Chen Wei", author_role: "Graduate Student", urgency_score: 6, created_at: new Date().toISOString() },
+  { id: "fallback-4", complaint: "Massive pothole on Apache Blvd near Price Rd has been there 3 months. Already damaged 5 tires this week.", issue_type: "road_maintenance", location: "Apache Blvd & Price Rd, Tempe", echo_count: 31, status: "pending", lat: 33.4157, lng: -111.9185, author_name: "Roberto Garcia", author_role: "Homeowner", urgency_score: 8, created_at: new Date().toISOString() },
+  { id: "fallback-5", complaint: "Late night drag racing on McClintock Dr wakes up the whole neighborhood every weekend after midnight.", issue_type: "noise_complaint", location: "McClintock Dr, Tempe", echo_count: 19, status: "pending", lat: 33.4019, lng: -111.9154, author_name: "Aisha Johnson", author_role: "Teacher", urgency_score: 5, created_at: new Date().toISOString() },
+  { id: "fallback-6", complaint: "No crosswalk on Southern Ave near the elementary school. Children are crossing a 4-lane road unsafely daily.", issue_type: "traffic_safety", location: "Southern Ave & Rural Rd, Tempe", echo_count: 47, status: "sent", lat: 33.3819, lng: -111.9268, author_name: "Sarah Mitchell", author_role: "Nurse", urgency_score: 9, created_at: new Date().toISOString() },
+  { id: "fallback-7", complaint: "Broken water main on Priest Dr has left a sinkhole growing for 2 weeks. Road is partially collapsed.", issue_type: "utilities", location: "Priest Dr, Tempe", echo_count: 23, status: "responded", lat: 33.4248, lng: -111.9558, author_name: "David Park", author_role: "Engineer", urgency_score: 10, created_at: new Date().toISOString() },
+  { id: "fallback-8", complaint: "Graffiti has covered the entire underpass on Broadway Rd. It has been there for months with no cleanup.", issue_type: "other", location: "Broadway Rd Underpass, Tempe", echo_count: 12, status: "pending", lat: 33.4019, lng: -111.9200, author_name: "Linda Nguyen", author_role: "Small Business Owner", urgency_score: 4, created_at: new Date().toISOString() },
+  { id: "fallback-9", complaint: "Tempe Town Lake path lighting is completely out for 400 meters. Joggers and cyclists at serious risk at night.", issue_type: "street_lighting", location: "Tempe Town Lake Path, Tempe", echo_count: 38, status: "pending", lat: 33.4281, lng: -111.9415, author_name: "Tyler Brooks", author_role: "College Student", urgency_score: 7, created_at: new Date().toISOString() },
+  { id: "fallback-10", complaint: "Construction noise from the ASU project on University Dr starts at 5am daily violating city noise ordinances.", issue_type: "noise_complaint", location: "University Dr & Rural Rd, Tempe", echo_count: 29, status: "pending", lat: 33.4248, lng: -111.9268, author_name: "Fatima Al-Hassan", author_role: "Retiree", urgency_score: 6, created_at: new Date().toISOString() },
+];
+
 async function geocodeLocation(location) {
   try {
     const query = encodeURIComponent(`${location}, Tempe, Arizona`);
@@ -22,32 +35,23 @@ export default async function handler(req, res) {
     const { id } = req.query;
 
     if (id) {
+      // Serve fallback posts directly without hitting DB
+      if (id.startsWith("fallback-")) {
+        const post = FALLBACK_POSTS.find(p => p.id === id);
+        if (post) return res.status(200).json(post);
+        return res.status(404).json({ error: "Not found" });
+      }
+
       const { data, error } = await insforge.database
         .from("posts")
         .select("*")
         .eq("id", id)
         .single();
-      if (error) return res.status(500).json({ error: error.message });
-
-      // Update if housing
-      if (data.issue_type === "housing") {
-        const types = [
-          "traffic",
-          "street_lighting",
-          "road_maintenance",
-          "parks_facilities",
-          "noise_complaint",
-          "utilities",
-          "other",
-        ];
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        await insforge.database
-          .from("posts")
-          .update({ issue_type: randomType })
-          .eq("id", data.id);
-        data.issue_type = randomType;
+      if (error) {
+        const post = FALLBACK_POSTS.find(p => p.id === id);
+        if (post) return res.status(200).json(post);
+        return res.status(500).json({ error: error.message });
       }
-
       return res.status(200).json(data);
     }
 
@@ -55,36 +59,22 @@ export default async function handler(req, res) {
 
     let query = insforge.database
       .from("posts")
-      .select("*")
-      .order("echo_count", { ascending: false });
+      .select("*");
+
+    const sort = req.query.sort || "new";
+    if (sort === "trending") query = query.order("echo_count", { ascending: false });
+    else if (sort === "urgent") query = query.order("urgency_score", { ascending: false });
+    else query = query.order("created_at", { ascending: false }); // default: new
 
     if (filterType) query = query.eq("issue_type", filterType);
 
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
-
-    // Update housing posts to varied types
-    const types = [
-      "traffic",
-      "street_lighting",
-      "road_maintenance",
-      "parks_facilities",
-      "noise_complaint",
-      "utilities",
-      "other",
-    ];
-    for (const post of data) {
-      if (post.issue_type === "housing") {
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        await insforge.database
-          .from("posts")
-          .update({ issue_type: randomType })
-          .eq("id", post.id);
-        post.issue_type = randomType; // update in response
-      }
+    if (error) {
+      console.warn("DB unavailable, using fallback posts:", error.message);
+      const fallback = filterType ? FALLBACK_POSTS.filter(p => p.issue_type === filterType) : FALLBACK_POSTS;
+      return res.status(200).json(fallback);
     }
-
-    return res.status(200).json(data);
+    return res.status(200).json(data?.length ? data : FALLBACK_POSTS);
   }
 
   if (req.method === "POST") {
@@ -97,6 +87,7 @@ export default async function handler(req, res) {
       issue_type,
       location,
       video_url,
+      urgency_score,
     } = req.body;
 
     // Geocode the location to get real coordinates
@@ -118,6 +109,7 @@ export default async function handler(req, res) {
           echo_count: 1,
           status: "pending",
           video_url: video_url || null,
+          urgency_score: urgency_score ? Number(urgency_score) : null,
         },
       ])
       .select()

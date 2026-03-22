@@ -17,10 +17,15 @@ export default function GroupsPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("All");
   const [joined, setJoined] = useState(new Set());
+  const [allGroups, setAllGroups] = useState(GROUPS);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newGroup, setNewGroup] = useState({ name: "", description: "", category: "All", gradient: "linear-gradient(135deg, #2563eb, #7c3aed)" });
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
     setJoined(new Set(saved));
+    const custom = JSON.parse(localStorage.getItem("customGroups") || "[]");
+    if (custom.length > 0) setAllGroups([...GROUPS, ...custom]);
   }, []);
 
   function toggleJoin(slug) {
@@ -32,13 +37,35 @@ export default function GroupsPage() {
     });
   }
 
-  const filtered = GROUPS.filter(g => {
+  function handleCreateGroup() {
+    if (!newGroup.name.trim()) return;
+    const slug = newGroup.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now();
+    const group = {
+      slug,
+      name: newGroup.name,
+      description: newGroup.description || "A community group on Civilian.",
+      members: 1,
+      posts: 0,
+      issueType: "other",
+      tags: [newGroup.category],
+      gradient: newGroup.gradient,
+    };
+    const updated = [...allGroups, group];
+    setAllGroups(updated);
+    const custom = JSON.parse(localStorage.getItem("customGroups") || "[]");
+    localStorage.setItem("customGroups", JSON.stringify([...custom, group]));
+    setJoined(prev => { const next = new Set(prev); next.add(slug); localStorage.setItem("joinedGroups", JSON.stringify([...next])); return next; });
+    setShowCreateModal(false);
+    setNewGroup({ name: "", description: "", category: "All", gradient: "linear-gradient(135deg, #2563eb, #7c3aed)" });
+  }
+
+  const filtered = allGroups.filter(g => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) || g.description.toLowerCase().includes(search.toLowerCase());
     const matchTab = activeTab === "All" || g.tags.some(t => t.toLowerCase().includes(activeTab.toLowerCase()));
     return matchSearch && matchTab;
   });
 
-  const myGroups = GROUPS.filter(g => joined.has(g.slug));
+  const myGroups = allGroups.filter(g => joined.has(g.slug));
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -67,7 +94,7 @@ export default function GroupsPage() {
             <Link href="/groups" style={{ display: "block", fontSize: 14, fontWeight: 500, color: "var(--muted)", textDecoration: "none", padding: "8px 10px", borderRadius: 8, marginBottom: 4 }}>
               Discover Groups
             </Link>
-            <button style={{ width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+            <button onClick={() => setShowCreateModal(true)} style={{ width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
               + Create Group
             </button>
           </div>
@@ -129,6 +156,60 @@ export default function GroupsPage() {
           </div>
         </main>
       </div>
+
+      {/* Create Group Modal */}
+      {showCreateModal && (
+        <div onClick={() => setShowCreateModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: 32, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>Create a Group</h2>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 24, lineHeight: 1 }}>&times;</button>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Group Name *</label>
+              <input type="text" placeholder="e.g. Eastside Neighborhood Watch" value={newGroup.name} onChange={e => setNewGroup(g => ({ ...g, name: e.target.value }))}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Description</label>
+              <textarea rows={3} placeholder="What does this group focus on?" value={newGroup.description} onChange={e => setNewGroup(g => ({ ...g, description: e.target.value }))}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Category</label>
+              <select value={newGroup.category} onChange={e => setNewGroup(g => ({ ...g, category: e.target.value }))}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
+                {FILTER_TABS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 10 }}>Color</label>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {[
+                  "linear-gradient(135deg, #2563eb, #7c3aed)",
+                  "linear-gradient(135deg, #22c55e, #06b6d4)",
+                  "linear-gradient(135deg, #f59e0b, #ef4444)",
+                  "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  "linear-gradient(135deg, #ef4444, #ec4899)",
+                  "linear-gradient(135deg, #f97316, #f59e0b)",
+                ].map(grad => (
+                  <button key={grad} onClick={() => setNewGroup(g => ({ ...g, gradient: grad }))}
+                    style={{ width: 36, height: 36, borderRadius: 10, background: grad, border: newGroup.gradient === grad ? "3px solid var(--text)" : "2px solid transparent", cursor: "pointer", flexShrink: 0 }} />
+                ))}
+              </div>
+            </div>
+
+            <button onClick={handleCreateGroup} disabled={!newGroup.name.trim()}
+              style={{ width: "100%", padding: "12px", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #7c3aed)", color: "white", border: "none", fontSize: 15, fontWeight: 700, cursor: newGroup.name.trim() ? "pointer" : "not-allowed", opacity: newGroup.name.trim() ? 1 : 0.5, fontFamily: "inherit" }}>
+              Create Group
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

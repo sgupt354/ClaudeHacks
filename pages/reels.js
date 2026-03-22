@@ -15,15 +15,15 @@ const ISSUE_IMAGES = {
 };
 
 const DEMO_REELS = [
-  { id: "demo-1", complaint: "The crosswalk at Mill Ave and University has no lighting. Near-misses every morning during school drop-off.", location: "Mill Ave & University Dr, Tempe", issue_type: "traffic_safety", echo_count: 47, author_name: "Maria Santos", author_role: "Parent", image_url: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800" },
+  { id: "demo-1", complaint: "The crosswalk at Mill Ave and University has no lighting. Near-misses every morning during school drop-off.", location: "Mill Ave & University Dr, Tempe", issue_type: "traffic_safety", echo_count: 47, author_name: "Maria Santos", author_role: "Parent", image_url: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800", video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" },
   { id: "demo-2", complaint: "Kiwanis Park playground equipment is broken and the shade structures are torn. Kids can't play safely in summer heat.", location: "Kiwanis Park, Tempe", issue_type: "parks_facilities", echo_count: 34, author_name: "James Thompson", author_role: "Homeowner", image_url: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800" },
   { id: "demo-3", complaint: "Community meeting on Apache Blvd rezoning was cancelled with no notice. Residents deserve transparency.", location: "Apache Blvd, Tempe", issue_type: "other", echo_count: 28, author_name: "Aisha Johnson", author_role: "Teacher", image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800" },
   { id: "demo-4", complaint: "Noise from the construction on Southern Ave starts at 5am every day. Violates city ordinance 9-10.", location: "Southern Ave, Tempe", issue_type: "noise_complaint", echo_count: 19, author_name: "Chen Wei", author_role: "Graduate Student", image_url: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800" },
 ];
 
-function ShareMenu({ postId, onClose, onCopied }) {
+function ShareMenu({ postId, demoUrl, onClose, onCopied }) {
   const ref = useRef(null);
-  const postUrl = typeof window !== "undefined" ? `${window.location.origin}/post/${postId}` : "";
+  const postUrl = demoUrl || (typeof window !== "undefined" ? `${window.location.origin}/post/${postId}` : "");
   const enc = encodeURIComponent(postUrl);
   const msg = encodeURIComponent("Check this community issue: " + postUrl);
 
@@ -163,15 +163,15 @@ export default function ReelsPage() {
                   <span style={{ fontSize: 12, fontWeight: 700 }}>{reel.echo_count || 0}</span>
                 </button>
 
-                {/* Comments */}
-                <Link href={`/post/${reel.id}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "white", textDecoration: "none" }}>
+                {/* Comments / View */}
+                <button onClick={() => { window.location.href = String(reel.id).startsWith("demo") ? "/forum" : `/post/${reel.id}`; }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, color: "white" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 700 }}>View</span>
-                </Link>
+                </button>
 
                 {/* Share */}
                 <button onClick={() => setShareReelId(shareReelId === reel.id ? null : reel.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, color: "white", position: "relative" }}>
@@ -181,8 +181,13 @@ export default function ReelsPage() {
                     </svg>
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 700 }}>Share</span>
-                  {shareReelId === reel.id && !String(reel.id).startsWith("demo") && (
-                    <ShareMenu postId={reel.id} onClose={() => setShareReelId(null)} onCopied={() => setToast({ message: "Link copied!", type: "success" })} />
+                  {shareReelId === reel.id && (
+                    <ShareMenu
+                      postId={String(reel.id).startsWith("demo") ? null : reel.id}
+                      demoUrl={String(reel.id).startsWith("demo") ? `${typeof window !== "undefined" ? window.location.origin : ""}/reels` : null}
+                      onClose={() => setShareReelId(null)}
+                      onCopied={() => setToast({ message: "Link copied!", type: "success" })}
+                    />
                   )}
                 </button>
               </div>

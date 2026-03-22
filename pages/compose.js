@@ -91,6 +91,10 @@ export default function Compose() {
   const [imagePreview, setImagePreview] = useState("");
   const [imageBase64, setImageBase64] = useState("");
   const [imageMediaType, setImageMediaType] = useState("");
+  const [moderationMsg, setModerationMsg] = useState("");
+  const [moderating, setModerating] = useState(false);
+  const [similarPosts, setSimilarPosts] = useState([]);
+  const [showSimilar, setShowSimilar] = useState(false);
 
   useEffect(() => {
     if (step !== "analyzing") return;
@@ -100,6 +104,35 @@ export default function Compose() {
     }, 4000);
     return () => clearInterval(interval);
   }, [step]);
+
+  async function checkSimilar(text, loc) {
+    if (!text.trim() || text.trim().length < 30) { setSimilarPosts([]); setShowSimilar(false); return; }
+    try {
+      const params = new URLSearchParams({ text: text.slice(0, 200), location: loc || "Tempe" });
+      const res = await fetch(`/api/similar?${params}`);
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) { setSimilarPosts(data); setShowSimilar(true); }
+      else { setSimilarPosts([]); setShowSimilar(false); }
+    } catch { setSimilarPosts([]); setShowSimilar(false); }
+  }
+
+  async function checkModeration(text) {
+    if (!text.trim() || text.trim().length < 20) { setModerationMsg(""); return; }
+    setModerating(true);
+    try {
+      const res = await fetch("/api/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      setModerationMsg(data.ok ? "" : (data.message || "This content may violate our community guidelines."));
+    } catch {
+      setModerationMsg("");
+    } finally {
+      setModerating(false);
+    }
+  }
 
   function handlePhotoChange(e) {
     const file = e.target.files?.[0];
@@ -127,19 +160,31 @@ export default function Compose() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ complaint, location: location || "Tempe, Arizona", imageBase64: imageBase64 || undefined, imageMediaType: imageMediaType || undefined }),
       });
-      if (!analyzeRes.ok) throw new Error("Analysis failed");
+      if (!analyzeRes.ok) {
+        const errData = await analyzeRes.json().catch(() => ({}));
+        throw new Error(errData.message || "Analysis failed");
+      }
       const analyzed = await analyzeRes.json();
       const saveRes = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaint, formal_request: analyzed.formal_request, department: analyzed.department, official_name: analyzed.official_name, official_email: analyzed.official_email, issue_type: analyzed.issue_type, location: analyzed.location_extracted || location || "Tempe, AZ" }),
+        body: JSON.stringify({
+          complaint,
+          formal_request: analyzed.formal_request,
+          department: analyzed.department,
+          official_name: analyzed.official_name,
+          official_email: analyzed.official_email,
+          issue_type: analyzed.issue_type,
+          location: analyzed.location_extracted || location || "Tempe, AZ",
+          urgency_score: analyzed.urgency_score || null,
+        }),
       });
       if (!saveRes.ok) throw new Error("Save failed");
       const saved = await saveRes.json();
       setResult({ ...analyzed, id: saved.id });
       setStep("done");
-    } catch {
-      setError("Something went wrong. Check your API key and try again.");
+    } catch (err) {
+      setError(err.message || "Something went wrong. Check your API key and try again.");
       setStep("form");
     } finally {
       setLoading(false);
@@ -201,6 +246,9 @@ export default function Compose() {
             </div>
             <div className="result-section" style={{ marginBottom: 16 }}>
               <p className="result-label">Your formal letter</p>
+              <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
+                ⚠️ AI-Generated Letter — Please review before sending. This was written by Claude AI and may contain inaccuracies about specific laws, officials, or procedures. Official contact details were found via web search and may have changed.
+              </div>
               <p className="result-text">{result.formal_request}</p>
             </div>
             <button className="echo-btn" onClick={() => router.push(`/post/${result.id}`)}>
@@ -238,8 +286,27 @@ export default function Compose() {
               rows={4}
               placeholder="e.g. There's a broken streetlight on Rural Road near the library and it's been out for 3 weeks. It's dangerous at night..."
               value={complaint}
-              onChange={(e) => setComplaint(e.target.value)}
+              onChange={(e) => { setComplaint(e.target.value); if (moderationMsg) setModerationMsg(""); if (showSimilar) setShowSimilar(false); }}
+              onBlur={(e) => { checkModeration(e.target.value); checkSimilar(e.target.value, location); }}
+              style={moderationMsg ? { borderColor: "#ef4444" } : {}}
             />
+
+            {/* Inline moderation feedback */}
+            {moderating && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
+                <div style={{ width: 10, height: 10, border: "2px solid var(--muted)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                Checking content policy...
+              </div>
+            )}
+            {moderationMsg && !moderating && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 8, padding: "10px 12px", borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <div>
+                  <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 600, marginBottom: 2 }}>Policy violation</p>
+                  <p style={{ fontSize: 12, color: "#ef4444", opacity: 0.85 }}>{moderationMsg} <a href="/policy" style={{ color: "#ef4444", fontWeight: 700 }}>Read our policy</a></p>
+                </div>
+              </div>
+            )}
 
             {/* Photo upload */}
             <label htmlFor="photo-upload" style={{
@@ -267,6 +334,27 @@ export default function Compose() {
               </div>
             )}
 
+            {/* Similarity banner */}
+            {showSimilar && !moderationMsg && (
+              <div style={{ marginTop: 10, padding: "14px 16px", borderRadius: 12, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.25)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                    {similarPosts.reduce((s, p) => s + (p.echo_count || 0), 0)} people already reported this
+                  </p>
+                  <button onClick={() => setShowSimilar(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 18, lineHeight: 1, padding: 0 }}>&times;</button>
+                </div>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>Join their fight instead of starting a new thread?</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {similarPosts.map(p => (
+                    <a key={p.id} href={`/post/${p.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+                      <span style={{ fontSize: 12, color: "var(--text)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{(p.complaint || "").slice(0, 60)}...</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", marginLeft: 8, whiteSpace: "nowrap" }}>{p.echo_count} voices →</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Example chips */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
               {EXAMPLES.map((ex) => (
@@ -280,9 +368,24 @@ export default function Compose() {
             <input type="text" placeholder="e.g. Rural Road & Southern Ave, Tempe" value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
 
-          <button className="submit-btn" onClick={handleSubmit} disabled={loading || !complaint.trim()}>
+          <button className="submit-btn" onClick={handleSubmit} disabled={loading || !complaint.trim() || !!moderationMsg || moderating}>
             {loading ? "Analyzing..." : "Find My Voice →"}
           </button>
+
+          {/* Privacy shield card */}
+          <div style={{ marginTop: 16, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
+            {[
+              ["🔒", "Anonymous by default — no name, email, or account required"],
+              ["🗑️", "No personal data stored — only your complaint text and location"],
+              ["👁️", "AI drafts the letter — you review before anything is sent"],
+              ["⚖️", "You decide if and when to send — we never auto-send without consent"],
+            ].map(([icon, text]) => (
+              <div key={text} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>
+                <span style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{text}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="notice" style={{ marginTop: 12 }}>

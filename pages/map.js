@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Nav from "../components/Nav";
 
@@ -26,10 +26,22 @@ const TYPE_LABELS = {
   other:            "Community",
 };
 
+const ISSUE_IMAGES = {
+  traffic_safety:   "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400",
+  traffic:          "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400",
+  parks_facilities: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400",
+  road_maintenance: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400",
+  street_lighting:  "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400",
+  noise_complaint:  "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400",
+  housing:          "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400",
+  other:            "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400",
+};
+
 const MAP_STYLES = [
   { id: "streets",   label: "Street",    style: "mapbox://styles/mapbox/streets-v12"           },
   { id: "satellite", label: "Satellite", style: "mapbox://styles/mapbox/satellite-streets-v12" },
   { id: "dark",      label: "Dark",      style: "mapbox://styles/mapbox/dark-v11"              },
+  { id: "3d",        label: "3D",        style: "mapbox://styles/mapbox/streets-v12"           },
 ];
 
 const FILTERS = ["all","traffic_safety","road_maintenance","parks_facilities","street_lighting","noise_complaint","housing"];
@@ -39,38 +51,108 @@ const FILTER_LABELS = {
   noise_complaint: "Noise", housing: "Housing",
 };
 
-const coordsCache = {};
-
-async function geocode(postId, location, token) {
-  if (coordsCache[postId]) return coordsCache[postId];
+async function geocodeLocation(locationText) {
+  if (!locationText) return null;
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  const query = encodeURIComponent(locationText + ', Tempe, Arizona');
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${token}&limit=1&country=US&proximity=-111.9400,33.4255`;
   try {
-    const q = encodeURIComponent(`${location}, Tempe, Arizona, USA`);
-    const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${token}&limit=1&country=US&proximity=-111.9400,33.4152`);
+    const res = await fetch(url);
     const data = await res.json();
     if (data.features?.length > 0) {
-      coordsCache[postId] = data.features[0].center;
-      return coordsCache[postId];
+      const [lng, lat] = data.features[0].center;
+      return { lat, lng };
     }
-  } catch {}
+  } catch (e) {
+    console.error('Geocode failed:', e);
+  }
   return null;
+}
+
+// Hover popup — stays visible when cursor moves from pin onto popup
+function HoverPopup({ post, rect, onMouseEnter, onMouseLeave }) {
+  if (!post || !rect) return null;
+  const color = TYPE_COLORS[post.issue_type] || TYPE_COLORS.other;
+  const img = post.image_url || ISSUE_IMAGES[post.issue_type] || ISSUE_IMAGES.other;
+
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{
+        position: "fixed",
+        left: rect.left + rect.width / 2,
+        top: rect.top - 8,
+        transform: "translate(-50%, -100%)",
+        zIndex: 9999,
+        background: "var(--surface)",
+        border: `1px solid ${color}66`,
+        borderRadius: 14,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+        width: 260,
+        overflow: "hidden",
+        pointerEvents: "auto",
+        cursor: "pointer",
+      }}
+    >
+      <img src={img} alt="" style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }} />
+      <div style={{ padding: "12px 14px" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color }}>
+          {TYPE_LABELS[post.issue_type] || "Community"}
+        </span>
+        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", lineHeight: 1.45, margin: "6px 0 8px" }}>
+          {(post.complaint || post.text || "").slice(0, 90)}{(post.complaint || post.text || "").length > 90 ? "..." : ""}
+        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--muted)" }}>{post.echo_count || 0} voices</span>
+          <Link href={`/post/${post.id}`} style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", textDecoration: "none", padding: "4px 10px", borderRadius: 999, background: "rgba(37,99,235,0.1)" }}>
+            View Issue →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function MapPage() {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
+  const hoverTimerRef = useRef(null);
   const [posts, setPosts] = useState([]);
+  const [enrichedPosts, setEnrichedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [geocoding, setGeocoding] = useState(false);
   const [activeStyle, setActiveStyle] = useState("streets");
   const [activeFilter, setActiveFilter] = useState("all");
   const [mapboxLoaded, setMapboxLoaded] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [hoverPost, setHoverPost] = useState(null);
+  const [hoverRect, setHoverRect] = useState(null);
+  const [is3D, setIs3D] = useState(false);
 
   useEffect(() => {
     fetch("/api/posts")
       .then(r => r.json())
-      .then(d => { setPosts(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(async (d) => {
+        const raw = Array.isArray(d) ? d : [];
+        setPosts(raw);
+        setLoading(false);
+        setGeocoding(true);
+        const enriched = await Promise.all(
+          raw.map(async (post) => {
+            if (post.lat && post.lng) return post;
+            if (post.location) {
+              const coords = await geocodeLocation(post.location);
+              if (coords) return { ...post, lat: coords.lat, lng: coords.lng };
+            }
+            return post;
+          })
+        );
+        setEnrichedPosts(enriched);
+        setGeocoding(false);
+      })
+      .catch(() => { setLoading(false); setGeocoding(false); });
   }, []);
 
   useEffect(() => {
@@ -98,49 +180,140 @@ export default function MapPage() {
     });
     mapInstanceRef.current = map;
     map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
-    map.on("load", () => addMarkers(map, mapboxgl, posts, "all"));
+    map.on("load", () => addMarkers(map, mapboxgl, enrichedPosts.length ? enrichedPosts : posts, "all"));
     return () => {
       if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
     };
   }, [loading, mapboxLoaded]);
 
+  // Re-render markers once geocoding completes
+  useEffect(() => {
+    if (geocoding || !mapInstanceRef.current || !window.mapboxgl) return;
+    const map = mapInstanceRef.current;
+    if (map.loaded()) {
+      addMarkers(map, window.mapboxgl, enrichedPosts, activeFilter);
+    } else {
+      map.once("load", () => addMarkers(map, window.mapboxgl, enrichedPosts, activeFilter));
+    }
+  }, [geocoding, enrichedPosts]);
+
+  const showHover = useCallback((post, rect) => {
+    clearTimeout(hoverTimerRef.current);
+    setHoverPost(post);
+    setHoverRect(rect);
+  }, []);
+
+  const hideHover = useCallback(() => {
+    hoverTimerRef.current = setTimeout(() => {
+      setHoverPost(null);
+      setHoverRect(null);
+    }, 120); // small delay so cursor can move from pin to popup
+  }, []);
+
+  const keepHover = useCallback(() => {
+    clearTimeout(hoverTimerRef.current);
+  }, []);
+
   async function addMarkers(map, mapboxgl, postsToShow, filter) {
     markersRef.current.forEach(m => { try { m.remove(); } catch {} });
     markersRef.current = [];
     const filtered = filter === "all" ? postsToShow : postsToShow.filter(p => p.issue_type === filter);
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
     for (const post of filtered) {
       let coords = null;
       if (post.lat && post.lng) coords = [post.lng, post.lat];
-      else if (post.location) coords = await geocode(post.id, post.location, token);
       if (!coords) continue;
+
       const color = TYPE_COLORS[post.issue_type] || TYPE_COLORS.other;
-      const el = document.createElement("div");
-      el.style.cssText = `width:32px;height:32px;border-radius:50%;background:${color};border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;transition:transform 0.15s;font-family:Inter,sans-serif;`;
-      el.textContent = post.echo_count || 0;
-      el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.25)"; });
-      el.addEventListener("mouseleave", () => { el.style.transform = "scale(1)"; });
-      el.addEventListener("click", () => {
+      const container = document.createElement("div");
+      container.style.cssText = "width:36px;height:36px;position:relative;cursor:pointer;";
+
+      const inner = document.createElement("div");
+      inner.style.cssText = `
+        width:32px;height:32px;border-radius:50%;
+        background:${color};border:2.5px solid white;
+        box-shadow:0 2px 8px rgba(0,0,0,0.25);
+        display:flex;align-items:center;justify-content:center;
+        font-size:10px;font-weight:700;color:white;
+        transition:transform 0.15s,box-shadow 0.15s;
+        font-family:Inter,sans-serif;
+        position:absolute;top:2px;left:2px;
+      `;
+      inner.textContent = post.echo_count || 0;
+      container.appendChild(inner);
+
+      container.addEventListener("mouseenter", () => {
+        inner.style.transform = "scale(1.3)";
+        inner.style.boxShadow = `0 4px 16px ${color}88`;
+        const rect = container.getBoundingClientRect();
+        showHover(post, rect);
+      });
+      container.addEventListener("mouseleave", () => {
+        inner.style.transform = "scale(1)";
+        inner.style.boxShadow = "0 2px 8px rgba(0,0,0,0.25)";
+        hideHover();
+      });
+      container.addEventListener("click", () => {
         setSelectedPost(post);
         map.flyTo({ center: coords, zoom: 15, duration: 800 });
       });
-      const marker = new mapboxgl.Marker({ element: el }).setLngLat(coords).addTo(map);
+
+      const marker = new mapboxgl.Marker({ element: container }).setLngLat(coords).addTo(map);
       markersRef.current.push(marker);
     }
   }
 
+  function enable3D(map) {
+    if (!map.getLayer("3d-buildings")) {
+      if (!map.getSource("composite")) return;
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 13,
+        paint: {
+          "fill-extrusion-color": "#aaa",
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 13, 0, 13.5, ["get", "height"]],
+          "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 13, 0, 13.5, ["get", "min_height"]],
+          "fill-extrusion-opacity": 0.6,
+        },
+      });
+    }
+    map.easeTo({ pitch: 60, bearing: -20, duration: 800 });
+  }
+
+  function disable3D(map) {
+    if (map.getLayer("3d-buildings")) map.removeLayer("3d-buildings");
+    map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+  }
+
   function switchStyle(s) {
-    setActiveStyle(s.id);
     const map = mapInstanceRef.current;
     if (!map) return;
+
+    if (s.id === "3d") {
+      // Toggle 3D on current style
+      const next = !is3D;
+      setIs3D(next);
+      if (next) enable3D(map);
+      else disable3D(map);
+      return;
+    }
+
+    setActiveStyle(s.id);
+    setIs3D(false);
     map.setStyle(s.style);
-    map.once("style.load", () => addMarkers(map, window.mapboxgl, posts, activeFilter));
+    map.once("style.load", () => {
+      addMarkers(map, window.mapboxgl, posts, activeFilter);
+    });
   }
 
   function applyFilter(f) {
     setActiveFilter(f);
     const map = mapInstanceRef.current;
-    if (map) addMarkers(map, window.mapboxgl, posts, f);
+    if (map) addMarkers(map, window.mapboxgl, enrichedPosts, f);
   }
 
   function flyTo(post) {
@@ -157,6 +330,14 @@ export default function MapPage() {
     <div style={{ background: "var(--bg)", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Nav />
 
+      {/* Hover popup — rendered at root to avoid clipping, stays alive on popup hover */}
+      <HoverPopup
+        post={hoverPost}
+        rect={hoverRect}
+        onMouseEnter={keepHover}
+        onMouseLeave={hideHover}
+      />
+
       {/* Filter bar */}
       <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: "10px 24px", display: "flex", alignItems: "center", gap: 8, overflowX: "auto" }}>
         {FILTERS.map(f => (
@@ -165,7 +346,7 @@ export default function MapPage() {
             border: `1px solid ${activeFilter === f ? "#2563eb" : "var(--border)"}`,
             background: activeFilter === f ? "#2563eb" : "var(--surface)",
             color: activeFilter === f ? "white" : "var(--muted)",
-            fontFamily: "Inter, sans-serif", transition: "all 0.15s",
+            fontFamily: "inherit", transition: "all 0.15s",
           }}>{FILTER_LABELS[f]}</button>
         ))}
         <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap" }}>
@@ -175,7 +356,7 @@ export default function MapPage() {
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden", height: "calc(100vh - 112px)" }}>
         {/* Sidebar */}
-        <aside style={{ width: 320, flexShrink: 0, background: "var(--surface)", borderRight: "1px solid var(--border)", overflowY: "auto" }}>
+        <aside style={{ width: 300, flexShrink: 0, background: "var(--surface)", borderRight: "1px solid var(--border)", overflowY: "auto" }}>
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1 }}>
               {filteredList.length} Issues
@@ -214,19 +395,22 @@ export default function MapPage() {
 
         {/* Map */}
         <div style={{ flex: 1, position: "relative" }}>
-          {/* Style switcher */}
+          {/* Style + 3D switcher */}
           <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10, display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 4, boxShadow: "var(--card-shadow)" }}>
-            {MAP_STYLES.map(s => (
-              <button key={s.id} onClick={() => switchStyle(s)} style={{
-                padding: "6px 14px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: "none", fontFamily: "Inter, sans-serif", transition: "all 0.15s",
-                background: activeStyle === s.id ? "#2563eb" : "transparent",
-                color: activeStyle === s.id ? "white" : "var(--muted)",
-              }}>{s.label}</button>
-            ))}
+            {MAP_STYLES.map(s => {
+              const active = s.id === "3d" ? is3D : (activeStyle === s.id && !is3D);
+              return (
+                <button key={s.id} onClick={() => switchStyle(s)} style={{
+                  padding: "6px 14px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  border: "none", fontFamily: "inherit", transition: "all 0.15s",
+                  background: active ? "#2563eb" : "transparent",
+                  color: active ? "white" : "var(--muted)",
+                }}>{s.label}</button>
+              );
+            })}
           </div>
 
-          {/* Selected popup */}
+          {/* Selected post panel */}
           {selectedPost && (
             <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 10, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 20px", width: 320, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -235,12 +419,15 @@ export default function MapPage() {
                 </span>
                 <button onClick={() => setSelectedPost(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 20, lineHeight: 1, padding: 0 }}>&times;</button>
               </div>
+              {(selectedPost.image_url || ISSUE_IMAGES[selectedPost.issue_type]) && (
+                <img src={selectedPost.image_url || ISSUE_IMAGES[selectedPost.issue_type]} alt="" style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 8, marginBottom: 10, display: "block" }} />
+              )}
               <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", lineHeight: 1.5, marginBottom: 10 }}>
-                {selectedPost.complaint?.slice(0, 100)}{selectedPost.complaint?.length > 100 ? "..." : ""}
+                {(selectedPost.complaint || "").slice(0, 100)}{(selectedPost.complaint || "").length > 100 ? "..." : ""}
               </p>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 12, color: "var(--muted)" }}>{selectedPost.echo_count} voices</span>
-                <Link href={`/post/${selectedPost.id}`} style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", textDecoration: "none" }}>View Issue &rarr;</Link>
+                <Link href={`/post/${selectedPost.id}`} style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", textDecoration: "none" }}>View Issue →</Link>
               </div>
             </div>
           )}

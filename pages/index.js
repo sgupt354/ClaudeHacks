@@ -194,7 +194,9 @@ function DemoWidget() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: letterVisible ? 1 : 0 }} transition={{ duration: 0.4 }}>
           {/* Official card */}
           <div style={{ background: "linear-gradient(135deg, rgba(37,99,235,0.2), rgba(124,58,237,0.15))", border: "1px solid rgba(37,99,235,0.3)", borderRadius: 12, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(37,99,235,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏛</div>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(37,99,235,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
             <div>
               <p style={{ fontSize: 14, fontWeight: 700, color: "#e6edf3" }}>Kevin Mattingly</p>
               <p style={{ fontSize: 12, color: "#58a6ff" }}>Public Works Director · publicworks@tempe.gov</p>
@@ -259,13 +261,73 @@ function DemoWidget() {
 
 // ── Bento Feature Cards ──────────────────────────────────────────────────────
 const BENTO = [
-  { cols: 2, title: "AI-Powered Letter Writing", body: "Our AI searches city records, finds the current official, and writes a legally-grounded letter citing real ordinances.", icon: "📄", color: "#2563eb", tall: true },
-  { cols: 1, title: "Photo Evidence",            body: "Attach photos. Claude Vision analyzes and references them in your formal letter.", icon: "📷", color: "#06b6d4" },
-  { cols: 1, title: "Collective Power",          body: "Issues auto-escalate to City Council at 50 voices.", icon: "👥", color: "#22c55e" },
-  { cols: 1, title: "Real Officials Found",      body: "AI web-searches for the current real official — not an outdated directory.", icon: "🔍", color: "#8b5cf6", tall: true },
-  { cols: 2, title: "Issue Tracking",            body: "Follow your issue from report to resolution. See when officials respond.", icon: "📊", color: "#f59e0b" },
-  { cols: 1, title: "Community Reels",           body: "Upload short videos of issues. Your community sees and echoes.", icon: "▶", color: "#ef4444" },
+  {
+    cols: 2, title: "AI-Powered Letter Writing", body: "Our AI searches city records, finds the current official, and writes a legally-grounded letter citing real ordinances.",
+    color: "#2563eb", tall: true,
+    image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800",
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+  },
+  {
+    cols: 1, title: "Photo Evidence", body: "Attach photos. Claude Vision analyzes and references them in your formal letter.",
+    color: "#06b6d4",
+    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600",
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+  },
+  {
+    cols: 1, title: "Collective Power", body: "Issues auto-escalate to City Council at 50 voices.",
+    color: "#22c55e",
+    image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600",
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  },
+  {
+    cols: 1, title: "Real Officials Found", body: "AI web-searches for the current real official — not an outdated directory.",
+    color: "#8b5cf6", tall: true,
+    image: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600",
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  },
+  {
+    cols: 2, title: "Issue Tracking", body: "Follow your issue from report to resolution. See when officials respond.",
+    color: "#f59e0b",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  },
+  {
+    cols: 1, title: "Community Reels", body: "Upload short videos of issues. Your community sees and echoes.",
+    color: "#ef4444",
+    image: "https://images.unsplash.com/photo-1492724441997-5dc865305da7?w=600",
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+  },
 ];
+
+// ── Neighborhood Health Score Widget ────────────────────────────────────────
+function HealthScoreWidget() {
+  const { count: score, ref } = useCounter(74, 1800);
+  const healthColor = score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444";
+  const label = score >= 80 ? "Healthy" : score >= 60 ? "Needs Attention" : "Critical";
+  return (
+    <div ref={ref} style={{ display: "inline-flex", alignItems: "center", gap: 32, background: "#161b22", border: "1px solid #30363d", borderRadius: 20, padding: "24px 40px", margin: "0 auto" }}>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#8b949e", marginBottom: 8 }}>Tempe Neighborhood Health</p>
+        <p style={{ fontSize: 72, fontWeight: 800, color: healthColor, letterSpacing: -4, lineHeight: 1 }}>{score}</p>
+        <p style={{ fontSize: 13, fontWeight: 600, color: healthColor, marginTop: 4 }}>{label}</p>
+      </div>
+      <div style={{ width: 1, height: 80, background: "#30363d" }} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {[
+          { label: "Green 80+", color: "#22c55e", active: score >= 80 },
+          { label: "Amber 60–79", color: "#f59e0b", active: score >= 60 && score < 80 },
+          { label: "Red below 60", color: "#ef4444", active: score < 60 },
+        ].map((tier) => (
+          <div key={tier.label} style={{ display: "flex", alignItems: "center", gap: 8, opacity: tier.active ? 1 : 0.35 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: tier.color }} />
+            <span style={{ fontSize: 12, color: tier.active ? "#e6edf3" : "#8b949e", fontWeight: tier.active ? 600 : 400 }}>{tier.label}</span>
+          </div>
+        ))}
+        <p style={{ fontSize: 11, color: "#8b949e", marginTop: 4 }}>100 − (unresolved × 2)</p>
+      </div>
+    </div>
+  );
+}
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function HomePage() {
@@ -301,12 +363,6 @@ export default function HomePage() {
         </div>
 
         <div style={{ position: "relative", zIndex: 1, maxWidth: 1152, margin: "0 auto", padding: "80px 32px", width: "100%" }}>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 500, color: "var(--muted)", marginBottom: 32 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-            Tempe, AZ — AI-powered civic platform
-          </motion.div>
-
           <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
             style={{ fontSize: "clamp(52px,7vw,88px)", fontWeight: 800, lineHeight: 1.0, letterSpacing: -4, color: "var(--text)", marginBottom: 32 }}>
             Your city.<br />Your voice.<br />
@@ -371,10 +427,19 @@ export default function HomePage() {
             style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
             {BENTO.map((card, i) => (
               <motion.div key={i} variants={fadeUp}
-                style={{ gridColumn: `span ${card.cols}`, background: "var(--surface)", border: "1px solid var(--border)", borderTop: `2px solid ${card.color}`, borderRadius: 16, padding: "28px", boxShadow: "var(--card-shadow)", minHeight: card.tall ? 220 : 160 }}>
-                <div style={{ fontSize: 32, marginBottom: 14 }}>{card.icon}</div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>{card.title}</h3>
-                <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>{card.body}</p>
+                style={{ gridColumn: `span ${card.cols}`, borderRadius: 20, overflow: "hidden", boxShadow: "var(--card-shadow)", position: "relative", minHeight: card.tall ? 280 : 220, border: "1px solid var(--border)" }}>
+                {/* Background image */}
+                <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${card.image})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                {/* Gradient overlay */}
+                <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${card.color}cc 0%, rgba(0,0,0,0.85) 100%)` }} />
+                {/* Content */}
+                <div style={{ position: "relative", zIndex: 1, padding: "28px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", marginBottom: 14 }}>
+                    {card.icon}
+                  </div>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "white", marginBottom: 6 }}>{card.title}</h3>
+                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.6 }}>{card.body}</p>
+                </div>
               </motion.div>
             ))}
           </motion.div>
@@ -464,6 +529,11 @@ export default function HomePage() {
                   <p style={{ fontSize: 14, color: "#8b949e", marginTop: 8 }}>{stat.label}</p>
                 </div>
               ))}
+            </motion.div>
+
+            {/* Neighborhood Health Score */}
+            <motion.div variants={fadeUp} style={{ marginBottom: 48 }}>
+              <HealthScoreWidget />
             </motion.div>
 
             {/* Quote */}
