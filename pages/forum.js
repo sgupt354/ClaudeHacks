@@ -549,8 +549,9 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal, viewer
         {/* Moderation fairness badge — shown when post is in a non-English language */}
         {(() => {
           const rawText = post.complaint || post.text || "";
-          const detected = detectLang(rawText);
-          const postLang = detected || (post.language && post.language !== "en" ? post.language : null);
+          const postLang = (post.language && post.language !== "en")
+            ? post.language
+            : detectLang(rawText);
           if (!postLang || postLang === "en") return null;
           return (
             <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "rgba(34,197,94,0.1)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)", marginLeft: 6 }}>
@@ -566,9 +567,10 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal, viewer
         {/* Translation banner */}
         {(() => {
           const rawText = post.complaint || post.text || "";
-          // detectLang takes priority — DB language field is often wrong (seeded as 'en')
-          const detected = detectLang(rawText);
-          const postLang = detected || (post.language && post.language !== "en" ? post.language : null);
+          // post.language field takes priority; detectLang as fallback for DB posts
+          const postLang = (post.language && post.language !== "en")
+            ? post.language
+            : detectLang(rawText);
           if (!postLang || postLang === viewerLang) return null;
           if (translations[post.id]) return (
             <div style={{ marginBottom: 10, padding: "10px 12px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 8, fontSize: 14, color: "var(--text)", lineHeight: 1.5 }}>
@@ -739,26 +741,30 @@ export default function ForumPage() {
     setToast({ message: "Voice added!", type: "success" });
   }
 
-  const staticPosts = FORUM_THREADS.map(t => ({ ...t, issue_type: t.issueType, complaint: t.text, echo_count: t.support }));
-  // Pin posts with a language field (non-English demo posts) to the front
-  const pinnedStatic = staticPosts.filter(p => p.language && p.language !== "en");
-  const restStatic = staticPosts.filter(p => !p.language || p.language === "en");
-  const allPosts = [...pinnedStatic, ...posts, ...restStatic];
+  const staticPosts = FORUM_THREADS.map(t => ({ ...t, issue_type: t.issueType || t.issue_type, complaint: t.text || t.complaint, echo_count: t.support || t.echo_count || 0 }));
+  // Spanish post always pinned to index 0 — immune to sort order and DB state
+  const spanishPost = staticPosts.find(p => p.language === "es");
+  const restStatic = staticPosts.filter(p => p.language !== "es");
+  const dbPosts = posts.filter(p => p.language !== "es"); // prevent DB duplicate if seeded
+  const allPosts = [...(spanishPost ? [spanishPost] : []), ...dbPosts, ...restStatic];
 
-  const filtered = allPosts
-    .filter(p => {
+  const filtered = (() => {
+    const base = allPosts.filter(p => {
       const matchFilter = filter === "all" || (p.issue_type || p.issueType) === filter;
       const matchSearch = !search || (p.complaint || p.text || "").toLowerCase().includes(search.toLowerCase()) || (p.location || "").toLowerCase().includes(search.toLowerCase());
       return matchFilter && matchSearch;
-    })
-    .sort((a, b) => {
+    });
+    // Spanish post always stays at index 0 if it passes the filter
+    const spanish = base.filter(p => p.language === "es");
+    const rest = base.filter(p => p.language !== "es").sort((a, b) => {
       if (sort === "trending") return (b.echo_count || 0) - (a.echo_count || 0);
       if (sort === "urgent") return (b.urgency_score || 0) - (a.urgency_score || 0);
-      // new: sort by created_at desc, demo posts go to bottom
       const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
       const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
       return bTime - aTime;
     });
+    return [...spanish, ...rest];
+  })();
 
   const trending = [...allPosts].sort((a, b) => (b.echo_count || 0) - (a.echo_count || 0)).slice(0, 5);
 
