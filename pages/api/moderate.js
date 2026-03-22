@@ -15,24 +15,15 @@ export default async function handler(req, res) {
       max_tokens: 100,
       messages: [{
         role: "user",
-        content: `You are a content moderator for a civic complaints platform.
+        content: `You are reviewing a message that a citizen wants to submit to their local government on a civic complaints platform.
+
+Read the message and decide: is this appropriate to send to a government official?
 
 Respond with ONLY: {"allowed": true/false, "reason": "one sentence"}
 
-BLOCK (allowed: false) if the message contains ANY of the following, regardless of context:
-- Insults or name-calling directed at any person or group (e.g. idiot, moron, stupid, dumb, fool, incompetent, useless, corrupt, clown, loser, trash, garbage when used about people)
-- Hate speech, slurs, or discrimination based on race, religion, gender, ethnicity
-- Threats of violence
-- Sexual content
-- Spam or gibberish
+Use your judgment. A good civic complaint is respectful and describes a real problem. Messages that are disrespectful, insulting, abusive, threatening, or have no legitimate civic purpose should not be sent to officials.
 
-ALLOW (allowed: true) if the message:
-- Describes a civic problem (road, light, park, noise, water, housing, safety, permits, trash, etc.) using respectful or neutral language
-- Expresses frustration about a situation without insulting anyone ("this road is terrible", "the pothole has been there for months")
-
-The standard: would this message be appropriate to send to a city official? If it contains any insult toward a person or group, block it.
-
-Text: "${complaint.slice(0, 500)}"`,
+Message: "${complaint.slice(0, 500)}"`,
       }],
     });
 
