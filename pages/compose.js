@@ -632,7 +632,6 @@ export default function Compose() {
           <button className="submit-btn" onClick={handleSubmit} disabled={loading || moderating}>
             {loading ? "Checking..." : "Find My Voice →"}
           </button>
-          </button>
 
           {/* Privacy shield card — SVG icons */}
           <div style={{ marginTop: 16, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
