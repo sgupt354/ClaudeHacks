@@ -1,17 +1,11 @@
-const CACHE_NAME = "civilian-v1";
+const CACHE_NAME = "civilian-v3";
 const FORUM_FEED_URL = "/api/posts";
 
-// On install — cache the app shell
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(["/", "/forum", "/map", "/compose"])
-    )
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(["/"])));
   self.skipWaiting();
 });
 
-// On activate — clean up old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -21,16 +15,13 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch — network-first for API, cache-first for static assets
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-
-  // Never try to cache non-GET requests — Cache API doesn't support them
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
-  // Cache forum feed for offline use
+  // API forum feed — network first, cache fallback
   if (url.pathname === FORUM_FEED_URL) {
     event.respondWith(
       fetch(request)
@@ -44,11 +35,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets — cache first
-  if (request.destination === "document" || request.destination === "script" || request.destination === "style") {
-    event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request))
-    );
+  // JS/CSS chunks — always network first, never serve stale bundles
+  if (request.destination === "script" || request.destination === "style") {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
+  // HTML documents — network first
+  if (request.destination === "document") {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
     return;
   }
 });

@@ -1,4 +1,3 @@
-import dynamic from "next/dynamic";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Nav from "../components/Nav";
@@ -643,7 +642,7 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal, viewer
 }
 
 // ── Forum Page ───────────────────────────────────────────────────────────────
-function ForumPage() {
+export default function ForumPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -768,6 +767,14 @@ function ForumPage() {
   const healthScore = Math.max(0, Math.min(100, 100 - unresolvedCount * 2));
   const healthColor = healthScore >= 80 ? "#22c55e" : healthScore >= 60 ? "#f59e0b" : "#ef4444";
 
+  if (!mounted) {
+    return (
+      <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
+        <Nav />
+      </div>
+    );
+  }
+
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
       <Nav />
@@ -878,4 +885,3 @@ function ForumPage() {
   );
 }
 
-export default dynamic(() => Promise.resolve(ForumPage), { ssr: false });
