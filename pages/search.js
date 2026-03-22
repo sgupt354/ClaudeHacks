@@ -35,7 +35,6 @@ export default function SearchPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [dbPosts, setDbPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -45,20 +44,20 @@ export default function SearchPage() {
     if (router.query.q) setQuery(String(router.query.q));
   }, [router.query.q]);
 
-  // Debounced DB search — augments base results
+  // Debounced DB search — augments base results, non-blocking
   useEffect(() => {
     clearTimeout(debounceRef.current);
     if (query.trim().length < 2) { setDbPosts([]); return; }
     debounceRef.current = setTimeout(async () => {
-      setLoading(true);
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, { signal: controller.signal });
+        clearTimeout(timeout);
         const data = await res.json();
         setDbPosts(Array.isArray(data) ? data : []);
       } catch {
         setDbPosts([]);
-      } finally {
-        setLoading(false);
       }
     }, 400);
     return () => clearTimeout(debounceRef.current);
