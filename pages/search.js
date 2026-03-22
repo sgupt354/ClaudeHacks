@@ -23,6 +23,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("issues");
   const [dbPosts, setDbPosts] = useState([]);
+  const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
@@ -30,6 +31,14 @@ export default function SearchPage() {
   // Focus on mount
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  // Pre-load all posts on mount so search has data even before typing
+  useEffect(() => {
+    fetch("/api/posts")
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setAllPosts(data); })
+      .catch(() => {});
   }, []);
 
   // Sync query with URL param on load
@@ -65,18 +74,24 @@ export default function SearchPage() {
 
   const q = query.toLowerCase().trim();
 
-  // Merge DB results with static threads, deduplicate by id
-  const staticMatches = q.length < 2 ? [] : STATIC_POSTS.filter(p =>
-    (p.complaint || "").toLowerCase().includes(q) ||
+  // Filter all sources by query
+  const matches = (list) => q.length < 2 ? [] : list.filter(p =>
+    (p.complaint || p.text || "").toLowerCase().includes(q) ||
     (p.location || "").toLowerCase().includes(q) ||
-    (TYPE_LABELS[p.issue_type] || "").toLowerCase().includes(q)
+    (TYPE_LABELS[p.issue_type || p.issueType] || "").toLowerCase().includes(q)
   );
 
-  const dbIds = new Set(dbPosts.map(p => String(p.id)));
-  const merged = [
-    ...dbPosts,
-    ...staticMatches.filter(p => !dbIds.has(String(p.id))),
-  ];
+  const dbMatches = dbPosts; // already filtered by API
+  const allPostMatches = matches(allPosts);
+  const staticMatches = matches(STATIC_POSTS);
+
+  // Deduplicate by id — DB results take priority
+  const seen = new Set(dbMatches.map(p => String(p.id)));
+  const fromAll = allPostMatches.filter(p => !seen.has(String(p.id)));
+  fromAll.forEach(p => seen.add(String(p.id)));
+  const fromStatic = staticMatches.filter(p => !seen.has(String(p.id)));
+
+  const merged = [...dbMatches, ...fromAll, ...fromStatic];
 
   return (
     <>
@@ -128,11 +143,11 @@ export default function SearchPage() {
                 onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "rgba(37,99,235,0.1)", color: "#2563eb" }}>
-                    {TYPE_LABELS[post.issue_type] || "Community"}
+                    {TYPE_LABELS[post.issue_type || post.issueType] || "Community"}
                   </span>
                   <span style={{ fontSize: 11, color: "var(--muted)" }}>{post.location}</span>
                 </div>
-                <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5, marginBottom: 6 }}>{post.complaint}</p>
+                <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5, marginBottom: 6 }}>{post.complaint || post.text}</p>
                 <p style={{ fontSize: 12, color: "var(--muted)" }}>{post.echo_count || 0} voices</p>
               </Link>
             ))}
