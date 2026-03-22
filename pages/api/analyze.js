@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are a civic action assistant. A community member has described a problem in their neighborhood.
+If an image is provided, describe what you see in detail and reference it in the formal letter with: The attached photograph shows...
 
 IMPORTANT: You must do exactly 2 web searches maximum, then respond with ONLY a JSON object.
 
@@ -24,10 +25,26 @@ CRITICAL: Your final response must be ONLY the JSON object. No markdown, no expl
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { complaint, location } = req.body;
+  const { complaint, location, imageBase64, imageMediaType } = req.body;
   if (!complaint?.trim()) return res.status(400).json({ error: "No complaint" });
 
   try {
+    const userContent = [];
+    if (imageBase64) {
+      userContent.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type:  imageMediaType || "image/jpeg",
+          data: imageBase64,
+        },
+      });
+    }
+    userContent.push({
+      type: "text",
+      text: `Community complaint: ${complaint}\n\nLocation: ${location || "Tempe, Arizona"}\n\nDo exactly 2 web searches, then respond with ONLY the JSON object described in your instructions.`,
+    });
+
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 3000,
@@ -41,7 +58,7 @@ export default async function handler(req, res) {
       messages: [
         {
           role: "user",
-          content: `Community complaint: ${complaint}\n\nLocation: ${location || "Tempe, Arizona"}\n\nDo exactly 2 web searches, then respond with ONLY the JSON object described in your instructions.`,
+          content: userContent,
         },
       ],
     });
