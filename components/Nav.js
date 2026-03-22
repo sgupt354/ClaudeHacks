@@ -156,18 +156,20 @@ export default function Nav() {
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
 
         {/* Raise Issue */}
-        <Link href="/compose" style={{
-          display: "flex", alignItems: "center", gap: 5,
-          padding: "8px 16px", borderRadius: 999,
-          background: "linear-gradient(135deg,#2563eb,#7c3aed)",
-          color: "white", textDecoration: "none", fontSize: 13, fontWeight: 700,
-          boxShadow: "0 2px 10px rgba(37,99,235,0.3)", transition: "opacity 0.15s",
-        }}
+        <button
+          onClick={() => { window.location.href = "/compose"; }}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "8px 16px", borderRadius: 999,
+            background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+            color: "white", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            boxShadow: "0 2px 10px rgba(37,99,235,0.3)", transition: "opacity 0.15s", fontFamily: "inherit",
+          }}
           onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
           onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Raise Issue
-        </Link>
+        </button>
 
         {/* Search */}
         <Link href="/search" style={{ ...iconBtnStyle, textDecoration: "none" }}
