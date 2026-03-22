@@ -644,7 +644,7 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal, viewer
 // ── Forum Page ───────────────────────────────────────────────────────────────
 export default function ForumPage() {
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("new");
   const [search, setSearch] = useState("");
@@ -814,7 +814,7 @@ export default function ForumPage() {
                 <button key={key} onClick={() => setSort(key)} style={{ padding: "5px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${sort === key ? "#2563eb" : "var(--border)"}`, background: sort === key ? "#2563eb" : "transparent", color: sort === key ? "white" : "var(--muted)", fontFamily: "inherit", transition: "all 0.15s" }}>{label}</button>
               ))}
             </div>
-            <p style={{ fontSize: 14, color: "var(--muted)" }}>{filtered.length} issues</p>
+            <p suppressHydrationWarning style={{ fontSize: 14, color: "var(--muted)" }}>{filtered.length} issues</p>
           </div>
 
           {/* Similarity banner — shown when filter is active */}
