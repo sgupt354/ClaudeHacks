@@ -15,31 +15,24 @@ export default async function handler(req, res) {
       max_tokens: 100,
       messages: [{
         role: "user",
-        content: `You are a content moderator for a civic complaints platform. Residents report local problems like potholes, broken lights, unsafe roads, noise, housing issues, etc.
+        content: `You are a content moderator for a civic complaints platform.
 
-Respond with ONLY a JSON object: {"allowed": true/false, "reason": "one sentence"}
+Respond with ONLY: {"allowed": true/false, "reason": "one sentence"}
 
-BLOCK (allowed: false) if the text:
-- Is ONLY insults/name-calling with NO specific civic problem mentioned. Examples that must be BLOCKED:
-  * "the authority are idiots" — no problem described, just insult
-  * "fix this idiot" — no civic issue
-  * "these people are morons and don't know anything" — pure insult
-  * "city officials are complete idiots" — insult only, no issue
-  * "everyone in government is stupid and useless" — no specific problem
-- Contains hate speech, slurs, or threats of violence
-- Is sexual content or spam
+BLOCK (allowed: false) if the message contains ANY of the following, regardless of context:
+- Insults or name-calling directed at any person or group (e.g. idiot, moron, stupid, dumb, fool, incompetent, useless, corrupt, clown, loser, trash, garbage when used about people)
+- Hate speech, slurs, or discrimination based on race, religion, gender, ethnicity
+- Threats of violence
+- Sexual content
+- Spam or gibberish
 
-ALLOW (allowed: true) if the text:
-- Describes a SPECIFIC civic problem even if written angrily. Examples that must be ALLOWED:
-  * "the authority are idiots, they haven't fixed the pothole on Mill Ave for 3 months" — has specific issue
-  * "these morons let the streetlight stay broken for weeks" — has specific issue
-  * "the city council is corrupt and won't fix our broken water pipes" — has specific issue
-  * "this road is absolute garbage, full of potholes" — describes road problem
-  * Any complaint mentioning: roads, lights, parks, noise, water, housing, safety, permits, trash, etc.
+ALLOW (allowed: true) if the message:
+- Describes a civic problem (road, light, park, noise, water, housing, safety, permits, trash, etc.) using respectful or neutral language
+- Expresses frustration about a situation without insulting anyone ("this road is terrible", "the pothole has been there for months")
 
-THE KEY RULE: Does the text mention a SPECIFIC civic problem (road, light, park, noise, water, housing, safety, etc.)? If YES → allow. If it's ONLY insults with zero mention of any actual problem → block.
+The standard: would this message be appropriate to send to a city official? If it contains any insult toward a person or group, block it.
 
-Text to analyze: "${complaint.slice(0, 500)}"`,
+Text: "${complaint.slice(0, 500)}"`,
       }],
     });
 
