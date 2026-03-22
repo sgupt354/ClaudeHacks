@@ -10,43 +10,42 @@ const TYPE_LABELS = {
   noise_complaint: "Noise", housing: "Housing", utilities: "Utilities", other: "Community",
 };
 
-// Normalize FORUM_THREADS to match post shape
-const STATIC_POSTS = FORUM_THREADS.map(t => ({
-  ...t,
-  issue_type: t.issue_type || t.issueType,
-  complaint: t.complaint || t.text,
-  echo_count: t.echo_count ?? t.support ?? 0,
-}));
+// Static posts always available — no network needed
+const BASE_POSTS = [
+  { id: "fallback-1", complaint: "The crosswalk at Mill Ave and University Dr has no lighting. Kids nearly get hit every morning walking to school.", issue_type: "traffic_safety", location: "Mill Ave & University Dr, Tempe", echo_count: 34 },
+  { id: "fallback-2", complaint: "Three streetlights on Rural Road near the library have been out for 6 weeks. Seniors avoid walking at night.", issue_type: "street_lighting", location: "Rural Road near Library, Tempe", echo_count: 22 },
+  { id: "fallback-3", complaint: "Kiwanis Park has no shade. Playground equipment reaches 160F in summer. Kids cannot play there at all.", issue_type: "parks_facilities", location: "Kiwanis Park, Tempe", echo_count: 48 },
+  { id: "fallback-4", complaint: "Massive pothole on Apache Blvd near Price Rd has been there 3 months. Already damaged 5 tires this week.", issue_type: "road_maintenance", location: "Apache Blvd & Price Rd, Tempe", echo_count: 31 },
+  { id: "fallback-5", complaint: "Late night drag racing on McClintock Dr wakes up the whole neighborhood every weekend after midnight.", issue_type: "noise_complaint", location: "McClintock Dr, Tempe", echo_count: 19 },
+  { id: "fallback-6", complaint: "No crosswalk on Southern Ave near the elementary school. Children are crossing a 4-lane road unsafely daily.", issue_type: "traffic_safety", location: "Southern Ave & Rural Rd, Tempe", echo_count: 47 },
+  { id: "fallback-7", complaint: "Broken water main on Priest Dr has left a sinkhole growing for 2 weeks. Road is partially collapsed.", issue_type: "utilities", location: "Priest Dr, Tempe", echo_count: 23 },
+  { id: "fallback-8", complaint: "Graffiti has covered the entire underpass on Broadway Rd. It has been there for months with no cleanup.", issue_type: "other", location: "Broadway Rd Underpass, Tempe", echo_count: 12 },
+  { id: "fallback-9", complaint: "Tempe Town Lake path lighting is completely out for 400 meters. Joggers and cyclists at serious risk at night.", issue_type: "street_lighting", location: "Tempe Town Lake Path, Tempe", echo_count: 38 },
+  { id: "fallback-10", complaint: "Construction noise from the ASU project on University Dr starts at 5am daily violating city noise ordinances.", issue_type: "noise_complaint", location: "University Dr & Rural Rd, Tempe", echo_count: 29 },
+  ...FORUM_THREADS.map(t => ({
+    id: t.id,
+    complaint: t.text || t.complaint || "",
+    issue_type: t.issueType || t.issue_type || "other",
+    location: t.location || "",
+    echo_count: t.support ?? t.echo_count ?? 0,
+  })),
+];
 
 export default function SearchPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("issues");
   const [dbPosts, setDbPosts] = useState([]);
-  const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // Focus on mount
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // Pre-load all posts on mount so search has data even before typing
-  useEffect(() => {
-    fetch("/api/posts")
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setAllPosts(data); })
-      .catch(() => {});
-  }, []);
-
-  // Sync query with URL param on load
   useEffect(() => {
     if (router.query.q) setQuery(String(router.query.q));
   }, [router.query.q]);
 
-  // Debounced search against /api/search
+  // Debounced DB search — augments base results
   useEffect(() => {
     clearTimeout(debounceRef.current);
     if (query.trim().length < 2) { setDbPosts([]); return; }
@@ -61,37 +60,21 @@ export default function SearchPage() {
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [query]);
-
-  // Update URL as user types
-  useEffect(() => {
-    if (query.trim()) {
-      router.replace(`/search?q=${encodeURIComponent(query)}`, undefined, { shallow: true });
-    }
   }, [query]);
 
   const q = query.toLowerCase().trim();
 
-  // Filter all sources by query
-  const matches = (list) => q.length < 2 ? [] : list.filter(p =>
-    (p.complaint || p.text || "").toLowerCase().includes(q) ||
+  const matchesQuery = (p) =>
+    (p.complaint || "").toLowerCase().includes(q) ||
     (p.location || "").toLowerCase().includes(q) ||
-    (TYPE_LABELS[p.issue_type || p.issueType] || "").toLowerCase().includes(q)
-  );
+    (TYPE_LABELS[p.issue_type] || "").toLowerCase().includes(q) ||
+    (p.issue_type || "").toLowerCase().includes(q);
 
-  const dbMatches = dbPosts; // already filtered by API
-  const allPostMatches = matches(allPosts);
-  const staticMatches = matches(STATIC_POSTS);
-
-  // Deduplicate by id — DB results take priority
-  const seen = new Set(dbMatches.map(p => String(p.id)));
-  const fromAll = allPostMatches.filter(p => !seen.has(String(p.id)));
-  fromAll.forEach(p => seen.add(String(p.id)));
-  const fromStatic = staticMatches.filter(p => !seen.has(String(p.id)));
-
-  const merged = [...dbMatches, ...fromAll, ...fromStatic];
+  const dbIds = new Set(dbPosts.map(p => String(p.id)));
+  const baseMatches = q.length >= 2 ? BASE_POSTS.filter(p => !dbIds.has(String(p.id)) && matchesQuery(p)) : [];
+  const merged = q.length < 2 ? [] : [...dbPosts, ...baseMatches];
 
   return (
     <>
@@ -102,19 +85,24 @@ export default function SearchPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input ref={inputRef} type="text" placeholder="Search issues, locations, issue types..." value={query} onChange={e => setQuery(e.target.value)}
-            style={{ width: "100%", padding: "13px 14px 13px 42px", borderRadius: 12, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 15, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search issues, locations, issue types..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{ width: "100%", padding: "13px 14px 13px 42px", borderRadius: 12, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 15, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+          />
           {query && (
             <button onClick={() => { setQuery(""); setDbPosts([]); }} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 18, lineHeight: 1 }}>&times;</button>
           )}
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid var(--border)", paddingBottom: 0 }}>
-          <button onClick={() => setTab("issues")}
-            style={{ padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: "transparent", color: tab === "issues" ? "#2563eb" : "var(--muted)", borderBottom: `2px solid ${tab === "issues" ? "#2563eb" : "transparent"}`, marginBottom: -1, transition: "all 0.15s" }}>
-            Issues ({merged.length})
-          </button>
+        {/* Tab bar */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid var(--border)" }}>
+          <div style={{ padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#2563eb", borderBottom: "2px solid #2563eb", marginBottom: -1 }}>
+            Issues {q.length >= 2 ? `(${merged.length})` : ""}
+          </div>
         </div>
 
         {/* Results */}
@@ -124,10 +112,6 @@ export default function SearchPage() {
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <p style={{ fontSize: 15, color: "var(--muted)" }}>Type at least 2 characters to search</p>
-          </div>
-        ) : loading ? (
-          <div style={{ textAlign: "center", padding: "48px 0" }}>
-            <div className="loading-spinner" style={{ margin: "0 auto" }} />
           </div>
         ) : merged.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 0" }}>
@@ -143,11 +127,11 @@ export default function SearchPage() {
                 onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "rgba(37,99,235,0.1)", color: "#2563eb" }}>
-                    {TYPE_LABELS[post.issue_type || post.issueType] || "Community"}
+                    {TYPE_LABELS[post.issue_type] || "Community"}
                   </span>
                   <span style={{ fontSize: 11, color: "var(--muted)" }}>{post.location}</span>
                 </div>
-                <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5, marginBottom: 6 }}>{post.complaint || post.text}</p>
+                <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5, marginBottom: 6 }}>{post.complaint}</p>
                 <p style={{ fontSize: 12, color: "var(--muted)" }}>{post.echo_count || 0} voices</p>
               </Link>
             ))}
