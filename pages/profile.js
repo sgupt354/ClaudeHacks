@@ -22,7 +22,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const savedName = localStorage.getItem("profileName") || "Anonymous Resident";
-    const savedEchoed = JSON.parse(localStorage.getItem("echoedPosts") || "[]");
+    const savedEchoed = JSON.parse(localStorage.getItem("echoed_posts") || "[]");
     const savedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
     setName(savedName);
     setEchoedIds(savedEchoed);

@@ -226,16 +226,7 @@ export default function PostPage() {
     if (savedEchoes.includes(String(id))) setEchoed(true);
   }, [id]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    function onKey(e) {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      if (e.key === "n" || e.key === "N") router.push("/compose");
-      if (e.key === "m" || e.key === "M") router.push("/map");
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [router]);
+
 
   function handleLike() {
     setLiked(prev => {

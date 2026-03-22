@@ -15,9 +15,9 @@ export default async function handler(req, res) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: "CivicPulse <onboarding@resend.dev>",
+      from: "Civilian <onboarding@resend.dev>",
       to: ["sgupt354@asu.edu"],
-      reply_to: "noreply@civicpulse.app",
+      reply_to: "noreply@civilian.app",
       subject,
       html: `
         <!DOCTYPE html>
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
             
             <!-- Header -->
             <div style="background:#2563eb;padding:24px 32px;">
-              <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;letter-spacing:0.5px;text-transform:uppercase;">CivicPulse Community Platform</p>
+              <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;letter-spacing:0.5px;text-transform:uppercase;">Civilian Community Platform</p>
               <h1 style="margin:6px 0 0;color:white;font-size:22px;font-weight:600;">Formal Community Request</h1>
             </div>
 
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
             <!-- Letter body -->
             <div style="padding:32px;">
               <p style="margin:0 0 24px;font-size:14px;color:#666;line-height:1.6;">
-                The following formal request was submitted by community members via CivicPulse, 
+                The following formal request was submitted by community members via Civilian, 
                 a civic engagement platform. This letter was drafted with AI assistance based on 
                 resident concerns and relevant city codes.
               </p>
@@ -57,10 +57,10 @@ export default async function handler(req, res) {
               </div>
 
               <div style="border-top:1px solid #e8e6e0;padding-top:20px;margin-top:8px;">
-                <p style="margin:0 0 4px;font-size:12px;color:#888;">This letter was sent via CivicPulse</p>
+                <p style="margin:0 0 4px;font-size:12px;color:#888;">This letter was sent via Civilian</p>
                 <p style="margin:0;font-size:12px;color:#888;">
                   View community support for this issue: 
-                  <a href="https://civicpulse.vercel.app/post/${post_id}" style="color:#2563eb;">civicpulse.vercel.app/post/${post_id}</a>
+                  <a href="https://civic-app-nine.vercel.app/post/${post_id}" style="color:#2563eb;">civic-app-nine.vercel.app/post/${post_id}</a>
                 </p>
               </div>
             </div>
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
             <!-- Footer -->
             <div style="background:#f8f7f4;padding:16px 32px;border-top:1px solid #e8e6e0;">
               <p style="margin:0;font-size:11px;color:#aaa;text-align:center;">
-                CivicPulse · AI-powered civic engagement · This is an automated community request
+                Civilian · AI-powered civic engagement · This is an automated community request
               </p>
             </div>
           </div>

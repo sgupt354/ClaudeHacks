@@ -363,7 +363,7 @@ export default function MapPage() {
     setSelectedPost(post);
     const map = mapInstanceRef.current;
     if (!map) return;
-    const coords = post.lat && post.lng ? [post.lng, post.lat] : coordsCache[post.id];
+    const coords = post.lat && post.lng ? [post.lng, post.lat] : null;
     if (coords) map.flyTo({ center: coords, zoom: 15, duration: 800 });
   }
 
