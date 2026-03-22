@@ -1,46 +1,43 @@
 import { insforge } from "../../lib/supabase";
-import { FORUM_THREADS } from "../../lib/civicData";
 
-// Extract location keywords for fuzzy matching
-function locationKeywords(loc = "") {
-  return loc.toLowerCase().replace(/[,\.]/g, " ").split(/\s+/).filter(w => w.length > 3);
+function extractRegion(loc) {
+  if (!loc) return null;
+  const lower = loc.toLowerCase();
+  const parts = lower.split(",").map(p => p.trim());
+  return parts[parts.length - 2] || parts[0] || lower;
 }
 
-function locationsOverlap(a, b) {
-  const ka = locationKeywords(a);
-  const kb = locationKeywords(b);
-  return ka.some(w => kb.includes(w));
+function regionsMatch(loc1, loc2) {
+  if (!loc1 || !loc2) return false;
+  const r1 = extractRegion(loc1);
+  const r2 = extractRegion(loc2);
+  if (!r1 || !r2) return false;
+  return r1.includes(r2) || r2.includes(r1) ||
+    r1.split(" ").some(word => word.length > 3 && r2.includes(word));
 }
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
-  const { text = "", location = "" } = req.query;
+  const { text, location, issue_type } = req.query;
+  if (!text && !location) return res.status(200).json([]);
 
   try {
-    const { data: dbPosts } = await insforge.database.from("posts").select("id,complaint,location,issue_type,echo_count").order("echo_count", { ascending: false }).limit(100);
-    const allPosts = [
-      ...FORUM_THREADS.map(t => ({ id: t.id, complaint: t.text, location: t.location, issue_type: t.issueType, echo_count: t.support })),
-      ...(Array.isArray(dbPosts) ? dbPosts : []),
-    ];
+    const { data: posts, error } = await insforge.database
+      .from("posts")
+      .select("id, complaint, location, issue_type, echo_count")
+      .order("echo_count", { ascending: false });
 
-    const textLower = text.toLowerCase();
-    const scored = allPosts
-      .map(p => {
-        let score = 0;
-        const pText = (p.complaint || "").toLowerCase();
-        // Location overlap
-        if (location && p.location && locationsOverlap(location, p.location)) score += 3;
-        // Shared keywords (4+ chars)
-        const words = textLower.split(/\s+/).filter(w => w.length > 4);
-        words.forEach(w => { if (pText.includes(w)) score += 1; });
-        return { ...p, score };
-      })
-      .filter(p => p.score >= 2)
-      .sort((a, b) => b.score - a.score || b.echo_count - a.echo_count)
-      .slice(0, 3);
+    if (error || !posts) return res.status(200).json([]);
 
-    return res.status(200).json(scored);
+    const similar = posts.filter(post => {
+      const locationMatch = regionsMatch(location || "", post.location);
+      const issueMatch = issue_type ? post.issue_type === issue_type : true;
+      return locationMatch && issueMatch;
+    });
+
+    return res.status(200).json(similar.slice(0, 3));
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Similar API error:", err);
+    return res.status(200).json([]);
   }
 }

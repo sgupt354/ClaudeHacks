@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Nav from "../components/Nav";
@@ -72,22 +72,92 @@ const STEP_ICONS = [
   ),
 ];
 
-const LANGUAGES = [
-  { code: "en", flag: "🇺🇸", label: "English" },
-  { code: "es", flag: "🇪🇸", label: "Español" },
-  { code: "zh", flag: "🇨🇳", label: "中文" },
-  { code: "hi", flag: "🇮🇳", label: "हिन्दी" },
-  { code: "ar", flag: "🇸🇦", label: "العربية" },
-  { code: "vi", flag: "🇻🇳", label: "Tiếng Việt" },
-  { code: "tl", flag: "🇵🇭", label: "Filipino" },
-  { code: "ko", flag: "🇰🇷", label: "한국어" },
-  { code: "pt", flag: "🇧🇷", label: "Português" },
-  { code: "fr", flag: "🇫🇷", label: "Français" },
-  { code: "ru", flag: "🇷🇺", label: "Русский" },
-  { code: "ja", flag: "🇯🇵", label: "日本語" },
-  { code: "de", flag: "🇩🇪", label: "Deutsch" },
-  { code: "so", flag: "🇸🇴", label: "Somali" },
-  { code: "am", flag: "🇪🇹", label: "Amharic" },
+const ALL_LANGUAGES = [
+  {code:'af', flag:'🇿🇦', label:'Afrikaans'},
+  {code:'sq', flag:'🇦🇱', label:'Albanian'},
+  {code:'am', flag:'🇪🇹', label:'Amharic'},
+  {code:'ar', flag:'🇸🇦', label:'Arabic'},
+  {code:'hy', flag:'🇦🇲', label:'Armenian'},
+  {code:'az', flag:'🇦🇿', label:'Azerbaijani'},
+  {code:'eu', flag:'🏴', label:'Basque'},
+  {code:'be', flag:'🇧🇾', label:'Belarusian'},
+  {code:'bn', flag:'🇧🇩', label:'Bengali'},
+  {code:'bs', flag:'🇧🇦', label:'Bosnian'},
+  {code:'bg', flag:'🇧🇬', label:'Bulgarian'},
+  {code:'ca', flag:'🏴', label:'Catalan'},
+  {code:'zh', flag:'🇨🇳', label:'Chinese (Simplified)'},
+  {code:'zh-TW', flag:'🇹🇼', label:'Chinese (Traditional)'},
+  {code:'hr', flag:'🇭🇷', label:'Croatian'},
+  {code:'cs', flag:'🇨🇿', label:'Czech'},
+  {code:'da', flag:'🇩🇰', label:'Danish'},
+  {code:'nl', flag:'🇳🇱', label:'Dutch'},
+  {code:'en', flag:'🇺🇸', label:'English'},
+  {code:'et', flag:'🇪🇪', label:'Estonian'},
+  {code:'fi', flag:'🇫🇮', label:'Finnish'},
+  {code:'fr', flag:'🇫🇷', label:'French'},
+  {code:'gl', flag:'🏴', label:'Galician'},
+  {code:'ka', flag:'🇬🇪', label:'Georgian'},
+  {code:'de', flag:'🇩🇪', label:'German'},
+  {code:'el', flag:'🇬🇷', label:'Greek'},
+  {code:'gu', flag:'🇮🇳', label:'Gujarati'},
+  {code:'ht', flag:'🇭🇹', label:'Haitian Creole'},
+  {code:'he', flag:'🇮🇱', label:'Hebrew'},
+  {code:'hi', flag:'🇮🇳', label:'Hindi'},
+  {code:'hu', flag:'🇭🇺', label:'Hungarian'},
+  {code:'is', flag:'🇮🇸', label:'Icelandic'},
+  {code:'id', flag:'🇮🇩', label:'Indonesian'},
+  {code:'ga', flag:'🇮🇪', label:'Irish'},
+  {code:'it', flag:'🇮🇹', label:'Italian'},
+  {code:'ja', flag:'🇯🇵', label:'Japanese'},
+  {code:'kn', flag:'🇮🇳', label:'Kannada'},
+  {code:'kk', flag:'🇰🇿', label:'Kazakh'},
+  {code:'km', flag:'🇰🇭', label:'Khmer'},
+  {code:'ko', flag:'🇰🇷', label:'Korean'},
+  {code:'ku', flag:'🏴', label:'Kurdish'},
+  {code:'ky', flag:'🇰🇬', label:'Kyrgyz'},
+  {code:'lo', flag:'🇱🇦', label:'Lao'},
+  {code:'lv', flag:'🇱🇻', label:'Latvian'},
+  {code:'lt', flag:'🇱🇹', label:'Lithuanian'},
+  {code:'mk', flag:'🇲🇰', label:'Macedonian'},
+  {code:'ms', flag:'🇲🇾', label:'Malay'},
+  {code:'ml', flag:'🇮🇳', label:'Malayalam'},
+  {code:'mt', flag:'🇲🇹', label:'Maltese'},
+  {code:'mr', flag:'🇮🇳', label:'Marathi'},
+  {code:'mn', flag:'🇲🇳', label:'Mongolian'},
+  {code:'ne', flag:'🇳🇵', label:'Nepali'},
+  {code:'no', flag:'🇳🇴', label:'Norwegian'},
+  {code:'ps', flag:'🇦🇫', label:'Pashto'},
+  {code:'fa', flag:'🇮🇷', label:'Persian'},
+  {code:'pl', flag:'🇵🇱', label:'Polish'},
+  {code:'pt', flag:'🇧🇷', label:'Portuguese'},
+  {code:'pa', flag:'🇮🇳', label:'Punjabi'},
+  {code:'ro', flag:'🇷🇴', label:'Romanian'},
+  {code:'ru', flag:'🇷🇺', label:'Russian'},
+  {code:'sr', flag:'🇷🇸', label:'Serbian'},
+  {code:'si', flag:'🇱🇰', label:'Sinhala'},
+  {code:'sk', flag:'🇸🇰', label:'Slovak'},
+  {code:'sl', flag:'🇸🇮', label:'Slovenian'},
+  {code:'so', flag:'🇸🇴', label:'Somali'},
+  {code:'es', flag:'🇪🇸', label:'Spanish'},
+  {code:'sw', flag:'🇰🇪', label:'Swahili'},
+  {code:'sv', flag:'🇸🇪', label:'Swedish'},
+  {code:'tl', flag:'🇵🇭', label:'Tagalog'},
+  {code:'tg', flag:'🇹🇯', label:'Tajik'},
+  {code:'ta', flag:'🇮🇳', label:'Tamil'},
+  {code:'tt', flag:'🇷🇺', label:'Tatar'},
+  {code:'te', flag:'🇮🇳', label:'Telugu'},
+  {code:'th', flag:'🇹🇭', label:'Thai'},
+  {code:'tr', flag:'🇹🇷', label:'Turkish'},
+  {code:'tk', flag:'🇹🇲', label:'Turkmen'},
+  {code:'uk', flag:'🇺🇦', label:'Ukrainian'},
+  {code:'ur', flag:'🇵🇰', label:'Urdu'},
+  {code:'uz', flag:'🇺🇿', label:'Uzbek'},
+  {code:'vi', flag:'🇻🇳', label:'Vietnamese'},
+  {code:'cy', flag:'🏴󠁧󠁢󠁷󠁬󠁳󠁿', label:'Welsh'},
+  {code:'xh', flag:'🇿🇦', label:'Xhosa'},
+  {code:'yi', flag:'🇮🇱', label:'Yiddish'},
+  {code:'yo', flag:'🇳🇬', label:'Yoruba'},
+  {code:'zu', flag:'🇿🇦', label:'Zulu'},
 ];
 
 const EXAMPLES = [
@@ -97,10 +167,61 @@ const EXAMPLES = [
   { label: "Pothole damage",      text: "There's a massive pothole on Apache Blvd that damaged my tire. It's been there for months and nobody has fixed it." },
 ];
 
+// Searchable language picker
+function LanguagePicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef(null);
+  const selected = ALL_LANGUAGES.find(l => l.code === value) || ALL_LANGUAGES.find(l => l.code === "en");
+  const filtered = ALL_LANGUAGES.filter(l =>
+    l.label.toLowerCase().includes(search.toLowerCase()) ||
+    l.code.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <button type="button" onClick={() => { setOpen(v => !v); setSearch(""); }}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+        <span>{selected?.flag}</span>
+        <span>{selected?.label}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 2, opacity: 0.5 }}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 500, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.2)", width: 240 }}>
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid var(--border)" }}>
+            <input autoFocus type="text" placeholder="Search languages..." value={search} onChange={e => setSearch(e.target.value)}
+              style={{ width: "100%", padding: "6px 10px", borderRadius: 7, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ maxHeight: 240, overflowY: "auto" }}>
+            {filtered.map(l => (
+              <button key={l.code} type="button" onClick={() => { onChange(l.code); setOpen(false); }}
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 12px", background: l.code === value ? "rgba(37,99,235,0.1)" : "transparent", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text)", textAlign: "left", fontFamily: "inherit" }}
+                onMouseEnter={e => { if (l.code !== value) e.currentTarget.style.background = "var(--bg)"; }}
+                onMouseLeave={e => { if (l.code !== value) e.currentTarget.style.background = "transparent"; }}>
+                <span>{l.flag}</span>
+                <span>{l.label}</span>
+                {l.code === value && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" style={{ marginLeft: "auto" }}><polyline points="20 6 9 17 4 12"/></svg>}
+              </button>
+            ))}
+            {filtered.length === 0 && <p style={{ padding: "12px", fontSize: 13, color: "var(--muted)", textAlign: "center" }}>No languages found</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Compose() {
   const router = useRouter();
   const [complaint, setComplaint] = useState("");
   const [location, setLocation] = useState("");
+  const [locationTouched, setLocationTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState("form");
   const [result, setResult] = useState(null);
@@ -114,6 +235,19 @@ export default function Compose() {
   const [similarPosts, setSimilarPosts] = useState([]);
   const [showSimilar, setShowSimilar] = useState(false);
   const [language, setLanguage] = useState("en");
+  const [detectedLang, setDetectedLang] = useState(null);
+  const [showLangBanner, setShowLangBanner] = useState(false);
+
+  // Browser language detection
+  useEffect(() => {
+    const browserLang = (navigator.language || "en").split("-")[0];
+    const match = ALL_LANGUAGES.find(l => l.code === browserLang);
+    if (match && match.code !== "en") {
+      setLanguage(match.code);
+      setDetectedLang(match);
+      setShowLangBanner(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (step !== "analyzing") return;
@@ -125,9 +259,9 @@ export default function Compose() {
   }, [step]);
 
   async function checkSimilar(text, loc) {
-    if (!text.trim() || text.trim().length < 30) { setSimilarPosts([]); setShowSimilar(false); return; }
+    if (!text.trim() || text.trim().length < 30 || !loc.trim()) { setSimilarPosts([]); setShowSimilar(false); return; }
     try {
-      const params = new URLSearchParams({ text: text.slice(0, 200), location: loc || "Tempe" });
+      const params = new URLSearchParams({ text: text.slice(0, 200), location: loc });
       const res = await fetch(`/api/similar?${params}`);
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) { setSimilarPosts(data); setShowSimilar(true); }
@@ -170,6 +304,11 @@ export default function Compose() {
 
   async function handleSubmit() {
     if (!complaint.trim()) return;
+    if (!location.trim()) {
+      setLocationTouched(true);
+      setError("Please add a location — it helps us find the right official and connect you with your community.");
+      return;
+    }
     setLoading(true);
     setStep("analyzing");
     setError("");
@@ -177,7 +316,7 @@ export default function Compose() {
       const analyzeRes = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaint, location: location || "Tempe, Arizona", imageBase64: imageBase64 || undefined, imageMediaType: imageMediaType || undefined, language }),
+        body: JSON.stringify({ complaint, location, imageBase64: imageBase64 || undefined, imageMediaType: imageMediaType || undefined, language }),
       });
       if (!analyzeRes.ok) {
         const errData = await analyzeRes.json().catch(() => ({}));
@@ -194,7 +333,7 @@ export default function Compose() {
           official_name: analyzed.official_name,
           official_email: analyzed.official_email,
           issue_type: analyzed.issue_type,
-          location: analyzed.location_extracted || location || "Tempe, AZ",
+          location: analyzed.location_extracted || location,
           urgency_score: analyzed.urgency_score || null,
         }),
       });
@@ -247,49 +386,7 @@ export default function Compose() {
   }
 
   if (step === "done" && result) {
-    return (
-      <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-        <Nav />
-        <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 20px" }}>
-          <div className="success-banner">Your issue has been posted and your letter is ready to send</div>
-          <div style={cardStyle}>
-            {result.language && result.language !== "en" && (() => {
-              const lang = LANGUAGES.find(l => l.code === result.language);
-              return (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.2)", marginBottom: 16, fontSize: 13 }}>
-                  <span>{lang?.flag}</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>Complaint received in {lang?.label}</span>
-                  <span style={{ color: "var(--muted)", marginLeft: "auto" }}>Letter written in English for the official</span>
-                </div>
-              );
-            })()}
-            <div className="result-section" style={{ marginBottom: 16 }}>
-              <p className="result-label">Send this letter to</p>
-              <div className="official-card">
-                <div>
-                  <p className="official-name">{result.official_name}</p>
-                  <p className="official-dept">{result.department}</p>
-                  <p className="official-email">{result.official_email}</p>
-                </div>
-              </div>
-            </div>
-            <div className="result-section" style={{ marginBottom: 16 }}>
-              <p className="result-label">Your formal letter</p>
-              <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
-                ⚠️ AI-Generated Letter — Please review before sending. This was written by Claude AI and may contain inaccuracies about specific laws, officials, or procedures. Official contact details were found via web search and may have changed.
-              </div>
-              <p className="result-text">{result.formal_request}</p>
-            </div>
-            <button className="echo-btn" onClick={() => router.push(`/post/${result.id}`)}>
-              See who else is raising this issue
-            </button>
-            <Link href="/" style={{ display: "block", textAlign: "center", fontSize: 14, color: "var(--muted)", textDecoration: "none", marginTop: 12 }}>
-              Back to forum
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <ResultPage result={result} router={router} />;
   }
 
   return (
@@ -309,19 +406,20 @@ export default function Compose() {
             </div>
           )}
 
+          {/* Browser language detection banner */}
+          {showLangBanner && detectedLang && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.2)", marginBottom: 16, fontSize: 13 }}>
+              <span>{detectedLang.flag}</span>
+              <span style={{ color: "var(--text)", flex: 1 }}>We detected your browser language as <strong>{detectedLang.label}</strong>. You can change this below.</span>
+              <button onClick={() => setShowLangBanner(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16, lineHeight: 1, padding: 0 }}>&times;</button>
+            </div>
+          )}
+
           <div className="form-group">
             <label className="form-label">What&apos;s the problem?</label>
-            {/* Language selector */}
+            {/* Language picker */}
             <div style={{ marginBottom: 10 }}>
-              <select
-                value={language}
-                onChange={e => setLanguage(e.target.value)}
-                style={{ padding: "7px 12px", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", outline: "none" }}
-              >
-                {LANGUAGES.map(l => (
-                  <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
-                ))}
-              </select>
+              <LanguagePicker value={language} onChange={setLanguage} />
             </div>
             <textarea
               rows={4}
@@ -332,7 +430,6 @@ export default function Compose() {
               style={moderationMsg ? { borderColor: "#ef4444" } : {}}
             />
 
-            {/* Inline moderation feedback */}
             {moderating && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
                 <div style={{ width: 10, height: 10, border: "2px solid var(--muted)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
@@ -350,15 +447,9 @@ export default function Compose() {
             )}
 
             {/* Photo upload */}
-            <label htmlFor="photo-upload" style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              marginTop: 10, padding: "12px", borderRadius: 12, cursor: "pointer",
-              border: `2px dashed var(--border)`, color: "var(--muted)", fontSize: 14, fontWeight: 500,
-              transition: "all 0.15s", background: "transparent",
-            }}
+            <label htmlFor="photo-upload" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10, padding: "12px", borderRadius: 12, cursor: "pointer", border: "2px dashed var(--border)", color: "var(--muted)", fontSize: 14, fontWeight: 500, transition: "all 0.15s", background: "transparent" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "#2563eb"; e.currentTarget.style.color = "#2563eb"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
-            >
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
               </svg>
@@ -369,18 +460,16 @@ export default function Compose() {
             {imagePreview && (
               <div style={{ marginTop: 10, border: "1px solid var(--border)", borderRadius: 12, padding: 10, background: "var(--bg)" }}>
                 <img src={imagePreview} alt="Selected" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8 }} />
-                <button type="button" className="share-btn" onClick={() => { setImagePreview(""); setImageBase64(""); setImageMediaType(""); }} style={{ marginTop: 8 }}>
-                  Remove Photo
-                </button>
+                <button type="button" className="share-btn" onClick={() => { setImagePreview(""); setImageBase64(""); setImageMediaType(""); }} style={{ marginTop: 8 }}>Remove Photo</button>
               </div>
             )}
 
             {/* Similarity banner */}
-            {showSimilar && !moderationMsg && (
+            {showSimilar && !moderationMsg && similarPosts.length > 0 && (
               <div style={{ marginTop: 10, padding: "14px 16px", borderRadius: 12, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.25)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-                    {similarPosts.reduce((s, p) => s + (p.echo_count || 0), 0)} people already reported this
+                    {similarPosts.reduce((s, p) => s + (p.echo_count || 0), 0)} neighbors in {location} already reported a {similarPosts[0]?.issue_type?.replace(/_/g, " ")} issue.
                   </p>
                   <button onClick={() => setShowSimilar(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 18, lineHeight: 1, padding: 0 }}>&times;</button>
                 </div>
@@ -405,24 +494,34 @@ export default function Compose() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Location (optional)</label>
-            <input type="text" placeholder="e.g. Rural Road & Southern Ave, Tempe" value={location} onChange={(e) => setLocation(e.target.value)} />
+            <label className="form-label">Location</label>
+            <input
+              type="text"
+              placeholder="e.g. Rural Road & Southern Ave, Tempe"
+              value={location}
+              onChange={(e) => { setLocation(e.target.value); if (error) setError(""); }}
+              onBlur={() => { setLocationTouched(true); checkSimilar(complaint, location); }}
+              style={locationTouched && !location.trim() ? { borderColor: "#ef4444" } : {}}
+            />
+            {locationTouched && !location.trim() && (
+              <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>Location is required to find the right official.</p>
+            )}
           </div>
 
-          <button className="submit-btn" onClick={handleSubmit} disabled={loading || !complaint.trim() || !!moderationMsg || moderating}>
+          <button className="submit-btn" onClick={handleSubmit} disabled={loading || !complaint.trim() || !location.trim() || !!moderationMsg || moderating}>
             {loading ? "Analyzing..." : "Find My Voice →"}
           </button>
 
-          {/* Privacy shield card */}
+          {/* Privacy shield card — SVG icons */}
           <div style={{ marginTop: 16, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
             {[
-              ["🔒", "Anonymous by default — no name, email, or account required"],
-              ["🗑️", "No personal data stored — only your complaint text and location"],
-              ["👁️", "AI drafts the letter — you review before anything is sent"],
-              ["⚖️", "You decide if and when to send — we never auto-send without consent"],
-            ].map(([icon, text]) => (
-              <div key={text} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>
+              [<svg key="lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>, "Anonymous by default — no name, email, or account required"],
+              [<svg key="shield" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, "No personal data stored — only your complaint text and location"],
+              [<svg key="eye" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>, "AI drafts the letter — you review before anything is sent"],
+              [<svg key="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>, "You decide if and when to send — we never auto-send"],
+            ].map(([icon, text], i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < 3 ? 8 : 0 }}>
+                <span style={{ color: "var(--muted)", flexShrink: 0, marginTop: 1 }}>{icon}</span>
                 <span style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{text}</span>
               </div>
             ))}
@@ -431,6 +530,127 @@ export default function Compose() {
 
         <div className="notice" style={{ marginTop: 12 }}>
           Your complaint is anonymous by default. AI writes the letter — you decide whether to send it.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultPage({ result, router }) {
+  const [editedLetter, setEditedLetter] = useState(result.formal_request || "");
+  const [translating, setTranslating] = useState(false);
+  const [translated, setTranslated] = useState(false);
+  const [originalLetter] = useState(result.formal_request || "");
+
+  const userLang = ALL_LANGUAGES.find(l => l.code === result.language);
+  const officialLang = ALL_LANGUAGES.find(l => l.code === result.official_language);
+  const needsTranslation = result.official_language && result.language &&
+    result.official_language !== result.language;
+
+  // Language badge logic
+  function renderLangBadge() {
+    if (!result.language || result.language === "en") return null;
+    if (!result.official_language || result.official_language === result.language) {
+      // Same language — letter written in that language
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.2)", marginBottom: 16, fontSize: 13 }}>
+          <span>{userLang?.flag}</span>
+          <span style={{ color: "var(--text)", fontWeight: 600 }}>Letter written in {userLang?.label} — matches official language</span>
+        </div>
+      );
+    }
+    // Different languages
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.2)", marginBottom: 16, fontSize: 13, flexWrap: "wrap" }}>
+        <span>{userLang?.flag}</span>
+        <span style={{ color: "var(--text)", fontWeight: 600 }}>Complaint received in {userLang?.label}</span>
+        <span style={{ color: "var(--muted)" }}>·</span>
+        <span>{officialLang?.flag}</span>
+        <span style={{ color: "var(--text)", fontWeight: 600 }}>Official letter written in {officialLang?.label}</span>
+      </div>
+    );
+  }
+
+  async function handleTranslate() {
+    setTranslating(true);
+    try {
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: editedLetter, targetLanguage: result.official_language, targetLanguageName: officialLang?.label }),
+      });
+      const data = await res.json();
+      if (data.translated) { setEditedLetter(data.translated); setTranslated(true); }
+    } catch {}
+    finally { setTranslating(false); }
+  }
+
+  const cardStyle = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: "40px", maxWidth: 640, margin: "0 auto", boxShadow: "var(--card-shadow)" };
+
+  return (
+    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
+      <Nav />
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 20px" }}>
+        <div className="success-banner">Your issue has been posted and your letter is ready to send</div>
+        <div style={cardStyle}>
+          {renderLangBadge()}
+
+          <div className="result-section" style={{ marginBottom: 16 }}>
+            <p className="result-label">Send this letter to</p>
+            <div className="official-card">
+              <div>
+                <p className="official-name">{result.official_name}</p>
+                <p className="official-dept">{result.department}</p>
+                <p className="official-email">{result.official_email}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="result-section" style={{ marginBottom: 16 }}>
+            <p className="result-label">Your formal letter</p>
+            <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
+              ⚠️ AI-Generated Letter — Please review before sending. This was written by Claude AI and may contain inaccuracies about specific laws, officials, or procedures.
+            </div>
+
+            {/* Editable letter */}
+            <textarea
+              value={editedLetter}
+              onChange={e => setEditedLetter(e.target.value)}
+              rows={12}
+              style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 14, color: "var(--text)", fontSize: 14, lineHeight: 1.7, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+            />
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>✏️ You can edit this letter before sending</p>
+
+            {/* Translate button */}
+            {needsTranslation && (
+              <div style={{ marginTop: 12, padding: "14px 16px", borderRadius: 12, background: "rgba(37,99,235,0.06)", border: "1px solid rgba(37,99,235,0.25)" }}>
+                <p style={{ fontSize: 13, color: "var(--text)", marginBottom: 10 }}>
+                  The official language in this region is <strong>{officialLang?.flag} {officialLang?.label}</strong>. Translate your letter before sending?
+                </p>
+                {!translated ? (
+                  <button onClick={handleTranslate} disabled={translating}
+                    style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: "#2563eb", color: "white", fontSize: 13, fontWeight: 600, cursor: translating ? "default" : "pointer", opacity: translating ? 0.7 : 1 }}>
+                    {translating ? "Translating..." : `Translate to ${officialLang?.flag} ${officialLang?.label}`}
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 13, color: "#22c55e", fontWeight: 600 }}>✓ Translated to {officialLang?.label}</span>
+                    <button onClick={() => { setEditedLetter(originalLetter); setTranslated(false); }}
+                      style={{ fontSize: 12, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                      Switch back to {userLang?.label}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button className="echo-btn" onClick={() => router.push(`/post/${result.id}`)}>
+            See who else is raising this issue
+          </button>
+          <Link href="/" style={{ display: "block", textAlign: "center", fontSize: 14, color: "var(--muted)", textDecoration: "none", marginTop: 12 }}>
+            Back to forum
+          </Link>
         </div>
       </div>
     </div>
