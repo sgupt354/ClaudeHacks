@@ -18,7 +18,12 @@ export default function App({ Component, pageProps }) {
     document.documentElement.setAttribute("data-theme", saved);
     // Register service worker for PWA offline support
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      // Unregister all old service workers first, then register fresh
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        Promise.all(regs.map((r) => r.unregister())).then(() => {
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
+        });
+      });
     }
   }, []);
 
