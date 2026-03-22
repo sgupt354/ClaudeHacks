@@ -5,7 +5,7 @@ const FAQS = [
   {
     section: "Getting Started",
     items: [
-      { q: "How do I raise an issue?", a: "Click '+ Raise Issue' in the nav or press N anywhere. Describe your problem in plain English, add a location, and optionally attach a photo. AI will find the right official and write a formal letter." },
+      { q: "How do I raise an issue?", a: "Click '+ Raise Issue' in the nav. Describe your problem in your own words — any language — add a location, and optionally attach a photo. AI will find the right official and write a formal letter." },
       { q: "Is my complaint anonymous?", a: "Yes. No name, email, or account is required. Your complaint text and location are stored, but nothing that identifies you personally." },
       { q: "How does the AI write the letter?", a: "Claude AI searches the web for the current government official responsible for your issue type, finds relevant city ordinances or state statutes, and writes a formal letter citing real law." },
     ],

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { insforge } from "../../lib/supabase";
 import Nav from "../../components/Nav";
 import Toast from "../../components/Toast";
 import EchoConsentDialog from "../../components/EchoConsentDialog";
+import PostSidebar from "../../components/PostSidebar";
 
 const TYPE_LABELS = {
   traffic_safety:   { label: "Traffic Safety",   cls: "type-traffic"  },
@@ -186,6 +186,9 @@ export default function PostPage() {
   const [copyState, setCopyState] = useState("idle"); // idle | copied
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showResponseForm, setShowResponseForm] = useState(false);
+  const [responseText, setResponseText] = useState("");
+  const [localGovResponse, setLocalGovResponse] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -296,7 +299,7 @@ export default function PostPage() {
   const progress = Math.min((post.echo_count / 50) * 100, 100);
   const echoes = Number(post.echo_count) || 0;
   const urgency = post.urgency_score || 0;
-  const govResponse = post.gov_response || DEMO_GOV_RESPONSES[String(post.id)];
+  const govResponse = localGovResponse || post.gov_response || DEMO_GOV_RESPONSES[String(post.id)];
 
   // Response time predictor (based on issue type)
   const RESPONSE_DAYS = { traffic_safety: 14, road_maintenance: 21, parks_facilities: 30, street_lighting: 10, noise_complaint: 7, housing: 45, other: 21 };
@@ -329,7 +332,8 @@ export default function PostPage() {
   return (
     <>
       <Nav />
-      <div className="container">
+      <div role="main" className="two-col-grid">
+        <div>
         <Link href="/forum" className="back-link">← Back to feed</Link>
 
         {/* Badges row */}
@@ -399,10 +403,10 @@ export default function PostPage() {
 
         {/* Echo + Like row */}
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-          <button className={`echo-btn ${echoed ? "echoed" : ""}`} onClick={handleEcho} style={{ flex: 1 }}>
+          <button aria-label={echoed ? "You already added your voice" : "Add your voice to this issue"} className={`echo-btn ${echoed ? "echoed" : ""}`} onClick={handleEcho} style={{ flex: 1 }}>
             {echoed ? "✓ Your voice has been added" : "Add My Voice to This Issue"}
           </button>
-          <button onClick={handleLike} style={{ padding: "12px 20px", borderRadius: 12, border: "1px solid var(--border)", background: liked ? "rgba(239,68,68,0.1)" : "var(--surface)", color: liked ? "#ef4444" : "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600 }}>
+          <button aria-label={liked ? "Unlike this issue" : "Like this issue"} onClick={handleLike} style={{ padding: "12px 20px", borderRadius: 12, border: "1px solid var(--border)", background: liked ? "rgba(239,68,68,0.1)" : "var(--surface)", color: liked ? "#ef4444" : "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             {likeCount}
           </button>
@@ -423,11 +427,19 @@ export default function PostPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </span>
             <div>
-              <p className="official-name">{post.official_name}</p>
-              <p className="official-dept">{post.department}</p>
-              <p className="official-email">{post.official_email}</p>
+              <p className="official-name">{post.official_name || "Contact information pending"}</p>
+              <p className="official-dept">{post.department || ""}</p>
+              <p className="official-email">{post.official_email || ""}</p>
             </div>
           </div>
+          {post.official_email && (
+            <a
+              href={`mailto:${post.official_email}?subject=${encodeURIComponent(`Community Concern: ${typeInfo.label} — ${post.location || "Tempe, AZ"}`)}&body=${encodeURIComponent(post.formal_request || "")}`}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, padding: "10px 16px", borderRadius: 10, background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.3)", color: "#2563eb", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Send Letter via Email
+            </a>
+          )}
         </div>
 
         {/* Government Response */}
@@ -441,10 +453,49 @@ export default function PostPage() {
           </div>
         )}
 
+        {/* Response tracking — shown when no response yet */}
+        {!govResponse && (
+          <div style={{ marginBottom: 16 }}>
+            {!showResponseForm ? (
+              <button
+                aria-label="Mark that official responded"
+                onClick={() => setShowResponseForm(true)}
+                style={{ width: "100%", padding: "11px", borderRadius: 12, border: "1px solid rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.06)", color: "#22c55e", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Did the official respond? Mark it here
+              </button>
+            ) : (
+              <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 14, padding: "16px" }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>Paste the official&apos;s response:</p>
+                <textarea
+                  aria-label="Official response text"
+                  rows={4}
+                  value={responseText}
+                  onChange={e => setResponseText(e.target.value)}
+                  placeholder="e.g. Thank you for your report. Our team has scheduled a repair for next week..."
+                  style={{ width: "100%", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box" }}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button
+                    onClick={() => { if (responseText.trim()) { setLocalGovResponse(responseText.trim()); setShowResponseForm(false); setToast({ message: "✓ Official responded in 4 days — response recorded!", type: "success" }); } }}
+                    disabled={!responseText.trim()}
+                    style={{ flex: 1, padding: "9px", borderRadius: 9, border: "none", background: "#22c55e", color: "white", fontSize: 13, fontWeight: 600, cursor: responseText.trim() ? "pointer" : "not-allowed", opacity: responseText.trim() ? 1 : 0.5 }}>
+                    Save Response
+                  </button>
+                  <button onClick={() => setShowResponseForm(false)} style={{ padding: "9px 16px", borderRadius: 9, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="result-section">
           <p className="result-label">Formal letter (AI-generated)</p>
-          <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
-            ⚠️ AI-Generated Letter — Please review before sending. This was written by Claude AI and may contain inaccuracies about specific laws, officials, or procedures. Official contact details were found via web search and may have changed.
+          <div style={{ display: "flex", gap: 8, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>AI-Generated Letter — Please review before sending. This was written by Claude AI and may contain inaccuracies about specific laws, officials, or procedures. Official contact details were found via web search and may have changed.</span>
           </div>
           <p className="result-text">{post.formal_request}</p>
         </div>
@@ -482,6 +533,11 @@ export default function PostPage() {
           This letter is AI-generated based on your description. Review before sending. This is not legal advice.
           <Link href="/policy" style={{ marginLeft: 8, color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>Community Policy</Link>
         </div>
+        </div>{/* end main col */}
+
+        <aside className="desktop-sidebar">
+          <PostSidebar post={post} />
+        </aside>
       </div>
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
       {showConsentDialog && post && (

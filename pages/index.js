@@ -373,7 +373,7 @@ export default function HomePage() {
 
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.6 }}
             style={{ fontSize: 18, color: "var(--muted)", lineHeight: 1.7, maxWidth: 520, marginBottom: 40 }}>
-            Describe any problem in plain English. AI finds the right official, writes a formal letter citing real law, and rallies your community.
+            Describe any problem in your own words. AI finds the right official, writes a formal letter citing real law, and rallies your community.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}
@@ -405,7 +405,7 @@ export default function HomePage() {
               From problem to government action<br />in 30 seconds.
             </motion.h2>
             <motion.p variants={fadeUp} style={{ fontSize: 16, color: "#8b949e", maxWidth: 560, margin: "0 auto" }}>
-              Watch AI turn a plain English complaint into an official letter, routed to the right authority, backed by real law.
+              Watch AI turn your complaint into an official letter, routed to the right authority, backed by real law.
             </motion.p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
@@ -459,7 +459,7 @@ export default function HomePage() {
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
               <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border)", boxShadow: "0 20px 60px rgba(0,0,0,0.12)", transform: "rotate(-1.5deg)" }}>
-                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600" alt="Community meeting" style={{ width: "100%", height: 280, objectFit: "cover", display: "block" }} />
+                <img src="https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?w=600&fit=crop&crop=faces" alt="Community meeting" style={{ width: "100%", height: 280, objectFit: "cover", objectPosition: "center top", display: "block" }} />
               </div>
             </motion.div>
           </div>
@@ -566,7 +566,7 @@ export default function HomePage() {
 
           {/* Community image strip */}
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} style={{ marginBottom: 40 }}>
-            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200" alt="Community meeting" style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 16, display: "block" }} />
+            <img src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1200&fit=crop" alt="City skyline" style={{ width: "100%", height: 200, objectFit: "cover", objectPosition: "center 60%", borderRadius: 16, display: "block" }} />
           </motion.div>
 
           <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory" }}>
@@ -611,6 +611,11 @@ export default function HomePage() {
                 Start Reporting Free →
               </Link>
               <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 16 }}>No account needed · Anonymous by default · AI does the work</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 999, background: "rgba(34,197,94,0.15)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)", letterSpacing: 0.5 }}>Works offline</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 999, background: "rgba(37,99,235,0.2)", color: "#93c5fd", border: "1px solid rgba(37,99,235,0.3)", letterSpacing: 0.5 }}>70+ languages</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 999, background: "rgba(139,92,246,0.2)", color: "#c4b5fd", border: "1px solid rgba(139,92,246,0.3)", letterSpacing: 0.5 }}>Installs on mobile</span>
+              </div>
             </motion.div>
           </motion.div>
         </div>

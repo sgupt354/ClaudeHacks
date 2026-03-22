@@ -1,35 +1,26 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const LANGUAGE_NAMES = {
-  es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
-  zh: "Chinese (Simplified)", ar: "Arabic", hi: "Hindi", vi: "Vietnamese",
-  tl: "Filipino (Tagalog)", ko: "Korean", ht: "Haitian Creole", so: "Somali",
-  am: "Amharic", ru: "Russian", ja: "Japanese", ta: "Tamil", mr: "Marathi",
-  te: "Telugu", ca: "Catalan", eu: "Basque", gl: "Galician", hu: "Hungarian",
-  it: "Italian", nl: "Dutch", pl: "Polish", uk: "Ukrainian",
-};
-
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { text, targetLanguage } = req.body;
-  if (!text || !targetLanguage) return res.status(400).json({ error: "Missing fields" });
-
-  const langName = LANGUAGE_NAMES[targetLanguage] || targetLanguage;
+  const { text, targetLanguage, targetLanguageName } = req.body;
+  if (!text) return res.status(400).json({ error: "No text" });
 
   try {
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
     const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2000,
       messages: [{
         role: "user",
-        content: `Translate this formal government letter to ${langName}. Keep it formal and professional. Return ONLY the translated text, nothing else:\n\n${text}`,
+        content: `Translate the following formal civic complaint letter to ${targetLanguageName || targetLanguage}. Keep the same formal tone and structure. Preserve all proper nouns (names, addresses, law citations). Return ONLY the translated text, nothing else.\n\nText to translate:\n${text}`,
       }],
     });
-    return res.status(200).json({ translation: message.content[0].text });
+
+    const translated = message.content[0].text.trim();
+    return res.status(200).json({ translated });
   } catch (err) {
+    console.error("Translation error:", err);
     return res.status(500).json({ error: err.message });
   }
 }

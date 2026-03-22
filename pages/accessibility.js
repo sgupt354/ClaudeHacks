@@ -33,7 +33,7 @@ export default function AccessibilityPage() {
         <div style={s.section}>
           <h2 style={s.h2}>Who benefits most</h2>
           <List items={[
-            "English-speaking residents with smartphones",
+            "Residents with smartphones and internet access",
             "People comfortable with technology",
             "Those with reliable internet access",
             "Residents who feel safe engaging with government",
@@ -43,8 +43,8 @@ export default function AccessibilityPage() {
         <div style={s.section}>
           <h2 style={s.h2}>Who we&apos;re not yet reaching — and why that matters</h2>
           <List items={[
-            "Non-English speakers (we only support English currently)",
-            "Elderly residents without smartphones",
+            "Residents without smartphones or internet access",
+            "Elderly residents less comfortable with technology",
             "People without internet access",
             "Undocumented residents who fear government contact",
             "Renters who fear landlord retaliation for civic complaints",
@@ -54,7 +54,7 @@ export default function AccessibilityPage() {
         <div style={s.section}>
           <h2 style={s.h2}>What we&apos;re doing about it</h2>
           <List items={[
-            "Planning: Spanish language support",
+            "Live: 70+ languages supported — write in any language, letter auto-translates to the official's language",
             "Planning: SMS-only interface for no-smartphone access",
             "Planning: Partner with community organizations as intermediaries",
             "Current: Anonymous by default protects vulnerable residents",
@@ -66,7 +66,7 @@ export default function AccessibilityPage() {
           <List items={[
             "Issues reported most = issues with most online-active residents",
             "Wealthier neighborhoods may dominate the feed",
-            "Our AI was trained on English data — may perform differently for non-standard English descriptions",
+            "AI performance may vary across languages and dialects — we are actively working to improve this",
           ]} />
         </div>
 

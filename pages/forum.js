@@ -5,6 +5,51 @@ import Toast from "../components/Toast";
 import { ISSUE_COLORS, FORUM_THREADS } from "../lib/civicData";
 import EchoConsentDialog from "../components/EchoConsentDialog";
 
+const LANG_NAMES = {
+  en: "English", fr: "French", es: "Spanish", de: "German", it: "Italian",
+  pt: "Portuguese", ru: "Russian", zh: "Chinese", ja: "Japanese", ko: "Korean",
+  ar: "Arabic", hi: "Hindi", vi: "Vietnamese", tl: "Filipino", so: "Somali",
+  am: "Amharic", nl: "Dutch", pl: "Polish", sv: "Swedish", tr: "Turkish", uk: "Ukrainian",
+};
+
+const COUNTRY_LANG_MAP = {
+  us: "en", gb: "en", au: "en", ca: "en", fr: "fr", de: "de", es: "es", it: "it",
+  pt: "pt", ru: "ru", jp: "ja", cn: "zh", kr: "ko", sa: "ar", in: "hi", mx: "es",
+  br: "pt", nl: "nl", pl: "pl", se: "sv", tr: "tr", ua: "uk",
+};
+
+// Lightweight rule-based language detector using unique character sets and common words
+function detectLang(text) {
+  if (!text || text.length < 10) return null;
+  const t = text.toLowerCase();
+  // Script-based detection (fast, reliable)
+  if (/[\u4e00-\u9fff]/.test(t)) return "zh";
+  if (/[\u3040-\u30ff]/.test(t)) return "ja";
+  if (/[\uac00-\ud7af]/.test(t)) return "ko";
+  if (/[\u0600-\u06ff]/.test(t)) return "ar";
+  if (/[\u0900-\u097f]/.test(t)) return "hi";
+  if (/[\u0400-\u04ff]/.test(t)) return "ru";
+  // Latin-script languages — common word fingerprints
+  const frWords = /\b(le|la|les|un|une|des|est|sont|avec|pour|dans|sur|que|qui|pas|plus|très|aussi|mais|ou|et|il|elle|nous|vous|ils|elles|ce|se|au|du|en|je|tu|on|ne|par|tout|bien|comme|avoir|être|faire|aller|voir|venir|savoir|pouvoir|vouloir|lampadaire|rue|depuis|semaines|dangereux|nuit|piétons|cyclistes|passent|devant)\b/g;
+  const esWords = /\b(el|la|los|las|un|una|unos|unas|es|son|con|para|en|sobre|que|quien|no|más|muy|también|pero|o|y|él|ella|nosotros|vosotros|ellos|ellas|este|ese|al|del|por|todo|bien|como|tener|ser|hacer|ir|ver|venir|saber|poder|querer)\b/g;
+  const deWords = /\b(der|die|das|ein|eine|ist|sind|mit|für|in|auf|dass|wer|nicht|mehr|sehr|auch|aber|oder|und|er|sie|wir|ihr|sie|dieser|jener|zum|vom|durch|alles|gut|wie|haben|sein|machen|gehen|sehen|kommen|wissen|können|wollen)\b/g;
+  const itWords = /\b(il|la|i|le|un|una|è|sono|con|per|in|su|che|chi|non|più|molto|anche|ma|o|e|lui|lei|noi|voi|loro|questo|quello|al|del|da|tutto|bene|come|avere|essere|fare|andare|vedere|venire|sapere|potere|volere)\b/g;
+  const scores = {
+    fr: (t.match(frWords) || []).length,
+    es: (t.match(esWords) || []).length,
+    de: (t.match(deWords) || []).length,
+    it: (t.match(itWords) || []).length,
+  };
+  const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  if (best[1] >= 2) return best[0];
+  // Accent character hints
+  if (/[àâçéèêëîïôùûüÿœæ]/.test(t)) return "fr";
+  if (/[áéíóúüñ¿¡]/.test(t)) return "es";
+  if (/[äöüß]/.test(t)) return "de";
+  if (/[àèéìíîòóùú]/.test(t)) return "it";
+  return null; // can't determine — treat as unknown, don't show banner
+}
+
 const FILTERS = [
   { key: "all",              label: "All Issues"    },
   { key: "traffic_safety",   label: "Traffic"       },
@@ -400,7 +445,7 @@ function StatusDots({ post }) {
 }
 
 // ── Post Card ────────────────────────────────────────────────────────────────
-function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
+function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal, viewerLang, translations, translatingIds, onTranslate }) {
   const c = ISSUE_COLORS[post.issue_type || post.issueType] || ISSUE_COLORS.other;
   const name = post.author_name || post.name || "Anonymous Resident";
   const isEchoed = echoedIds.has(String(post.id));
@@ -411,6 +456,8 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
   const [showShare, setShowShare] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.like_count || Math.floor(Math.random() * 12) + 1);
+  const [priorityVoted, setPriorityVoted] = useState(false);
+  const [priorityCount, setPriorityCount] = useState(post.priority_votes || Math.floor((post.echo_count ?? post.support ?? 0) * 0.4) || 0);
   const urgency = post.urgency_score || 0;
   const [showCardConsent, setShowCardConsent] = useState(false);
 
@@ -418,6 +465,8 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("likedPosts") || "[]");
     setLiked(saved.includes(String(post.id)));
+    const savedPriority = JSON.parse(localStorage.getItem("priorityVotes") || "[]");
+    setPriorityVoted(savedPriority.includes(String(post.id)));
   }, [post.id]);
 
   function handleLike(e) {
@@ -430,6 +479,15 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
       localStorage.setItem("likedPosts", JSON.stringify(updated));
       return next;
     });
+  }
+
+  function handlePriorityVote(e) {
+    e.stopPropagation();
+    if (priorityVoted) return;
+    setPriorityVoted(true);
+    setPriorityCount(n => n + 1);
+    const saved = JSON.parse(localStorage.getItem("priorityVotes") || "[]");
+    localStorage.setItem("priorityVotes", JSON.stringify([...saved, String(post.id)]));
   }
 
   async function handleEcho(e) {
@@ -493,10 +551,46 @@ function PostCard({ post, index, echoedIds, onEcho, onShare, onOpenModal }) {
           {post.complaint || post.text}
         </p>
 
+        {/* Translation banner */}
+        {(() => {
+          const rawText = post.complaint || post.text || "";
+          // detectLang takes priority — DB language field is often wrong (seeded as 'en')
+          const detected = detectLang(rawText);
+          const postLang = detected || (post.language && post.language !== "en" ? post.language : null);
+          if (!postLang || postLang === viewerLang) return null;
+          if (translations[post.id]) return (
+            <div style={{ marginBottom: 10, padding: "10px 12px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 8, fontSize: 14, color: "var(--text)", lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                <span>Translated from {LANG_NAMES[postLang] || postLang}</span>
+                <button onClick={e => { e.stopPropagation(); onTranslate(post.id, null, null); }}
+                  style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 11, padding: 0, fontFamily: "inherit" }}>
+                  Show original
+                </button>
+              </div>
+              {translations[post.id]}
+            </div>
+          );
+          return (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", marginBottom: 10, background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.2)", borderRadius: 8, fontSize: 12 }}>
+              <span style={{ color: "var(--muted)" }}>Post in {LANG_NAMES[postLang] || postLang} · Translate to {LANG_NAMES[viewerLang] || viewerLang}?</span>
+              <button onClick={e => { e.stopPropagation(); onTranslate(post.id, post.complaint || post.text, viewerLang); }}
+                disabled={translatingIds.has(post.id)}
+                style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", opacity: translatingIds.has(post.id) ? 0.6 : 1 }}>
+                {translatingIds.has(post.id) ? "Translating..." : "Translate"}
+              </button>
+            </div>
+          );
+        })()}
+
         <StatusDots post={post} />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, marginTop: 8, borderTop: "1px solid var(--border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {/* Priority vote */}
+            <button onClick={handlePriorityVote} title={priorityVoted ? "You marked this as priority" : "Mark as community priority"} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 10px", borderRadius: 8, border: "none", cursor: priorityVoted ? "default" : "pointer", fontSize: 12, fontWeight: 600, transition: "all 0.15s", background: priorityVoted ? "rgba(245,158,11,0.12)" : "transparent", color: priorityVoted ? "#f59e0b" : "var(--muted)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill={priorityVoted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              {priorityCount}
+            </button>
             {/* Echo */}
             <button onClick={handleEcho} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 10px", borderRadius: 8, border: "none", cursor: isEchoed ? "default" : "pointer", fontSize: 12, fontWeight: 600, transition: "all 0.15s", background: isEchoed ? "rgba(37,99,235,0.12)" : "transparent", color: isEchoed ? "#2563eb" : "var(--muted)", transform: `scale(${echoScale})` }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill={isEchoed ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>
@@ -547,6 +641,11 @@ export default function ForumPage() {
   const [modalPost, setModalPost] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
 
+  // Translation
+  const [viewerLang, setViewerLang] = useState("en");
+  const [translations, setTranslations] = useState({});
+  const [translatingIds, setTranslatingIds] = useState(new Set());
+
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("echoedPosts") || "[]");
     setEchoedIds(new Set(saved));
@@ -554,26 +653,67 @@ export default function ForumPage() {
       .then(r => r.json())
       .then(d => { setPosts(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
-    // Online/offline detection
     setIsOnline(navigator.onLine);
     const onOnline = () => setIsOnline(true);
     const onOffline = () => setIsOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
+
+    // Browser language fallback
+    const browserLang = navigator.language?.split("-")[0] || "en";
+    setViewerLang(browserLang);
+
+    // Silently try geolocation — no prompt, no banner
+    // Only fires if user already granted location in browser settings
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+            // Try Mapbox first
+            if (token) {
+              const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${token}&types=country`);
+              const data = await res.json();
+              const country = data.features?.[0]?.properties?.short_code;
+              if (country && COUNTRY_LANG_MAP[country]) { setViewerLang(COUNTRY_LANG_MAP[country]); return; }
+            }
+            // Fallback: free reverse geocode via nominatim
+            const res2 = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const data2 = await res2.json();
+            const cc = data2?.address?.country_code?.toLowerCase();
+            if (cc && COUNTRY_LANG_MAP[cc]) {
+              setViewerLang(COUNTRY_LANG_MAP[cc]);
+            }
+          } catch {}
+        },
+        () => {} // denied or unavailable — keep browser language, no UI shown
+      );
+    }
+
     return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
   }, []);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    function onKey(e) {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      if (e.key === "n" || e.key === "N") window.location.href = "/compose";
-      if (e.key === "m" || e.key === "M") window.location.href = "/map";
-      if (e.key === "Escape") setModalPost(null);
+  async function translatePost(postId, text, targetLang) {
+    // "Show original" — clear translation
+    if (text === null) {
+      setTranslations(prev => { const next = { ...prev }; delete next[postId]; return next; });
+      return;
     }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
+    setTranslatingIds(prev => new Set([...prev, postId]));
+    try {
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, targetLanguage: targetLang, targetLanguageName: LANG_NAMES[targetLang] || targetLang }),
+      });
+      const data = await res.json();
+      if (data.translated) setTranslations(prev => ({ ...prev, [postId]: data.translated }));
+    } catch {}
+    finally {
+      setTranslatingIds(prev => { const next = new Set(prev); next.delete(postId); return next; });
+    }
+  }
 
   function handleEcho(id) {
     setEchoedIds(prev => {
@@ -623,8 +763,8 @@ export default function ForumPage() {
         </div>
       )}
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 24px", display: "flex", gap: 32 }}>
-        <aside style={{ width: 200, flexShrink: 0 }}>
+      <div className="forum-layout" style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 24px", display: "flex", gap: 32 }}>
+        <aside className="forum-left-aside" style={{ width: 200, flexShrink: 0 }}>
           <div style={{ position: "sticky", top: 80 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "var(--muted)", marginBottom: 12 }}>Filter</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -647,7 +787,7 @@ export default function ForumPage() {
           </div>
         </aside>
 
-        <main style={{ flex: 1, minWidth: 0 }}>
+      <main role="main" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ marginBottom: 16 }}>
             <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.5, color: "var(--text)", marginBottom: 12 }}>Community Feed</h1>
             {/* Search */}
@@ -672,11 +812,15 @@ export default function ForumPage() {
           {!loading && filtered.map((post, i) => (
             <PostCard key={post.id} post={post} index={i} echoedIds={echoedIds} onEcho={handleEcho}
               onShare={() => setToast({ message: "Link copied!", type: "success" })}
-              onOpenModal={setModalPost} />
+              onOpenModal={setModalPost}
+              viewerLang={viewerLang}
+              translations={translations}
+              translatingIds={translatingIds}
+              onTranslate={translatePost} />
           ))}
         </main>
 
-        <aside style={{ width: 256, flexShrink: 0 }}>
+        <aside className="forum-right-aside" style={{ width: 256, flexShrink: 0 }}>
           <div style={{ position: "sticky", top: 80 }}>
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: "var(--card-shadow)" }}>
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "var(--muted)", marginBottom: 14 }}>Trending Issues</p>
@@ -704,15 +848,7 @@ export default function ForumPage() {
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", boxShadow: "var(--card-shadow)" }}>
-              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "var(--muted)", marginBottom: 8 }}>Keyboard Shortcuts</p>
-              {[["N","New issue"],["M","Open map"],["Esc","Close modal"]].map(([k,v]) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>{v}</span>
-                  <kbd style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}>{k}</kbd>
-                </div>
-              ))}
-            </div>
+
           </div>
         </aside>
       </div>

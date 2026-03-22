@@ -16,6 +16,10 @@ export default function App({ Component, pageProps }) {
     const saved = localStorage.getItem("theme") || "light";
     setTheme(saved);
     document.documentElement.setAttribute("data-theme", saved);
+    // Register service worker for PWA offline support
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   }, []);
 
   // Global keyboard shortcuts

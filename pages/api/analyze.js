@@ -37,9 +37,9 @@ Step 3: Respond with ONLY this JSON — no other text before or after:
   "official_email": "real email address found via search",
   "location_extracted": "location mentioned in complaint",
   "urgency_score": "integer 1-10. Set 8-10 for safety issues (traffic, lighting, structural hazards). Set 6-7 for quality-of-life issues. Set 1-5 for minor inconveniences.",
-  "language": "ISO 639-1 code of the complaint language (en, es, zh, vi, hi, ar, tl, ko, pt, fr, ru, ja, de, so, am etc)",
-  "official_language": "ISO 639-1 code of the official government language for that region",
-  "formal_request": "the full formal letter text, 3-4 paragraphs, citing the real law or ordinance you found, written from the perspective of concerned residents. Sign as Concerned Residents. Write in English for US complaints. If location is outside USA, write in the official_language of that region."
+  "language": "ISO 639-1 code of the language the user wrote their complaint in. Detect from the text itself.",
+  "official_language": "ISO 639-1 code of the OFFICIAL government language for the specific location provided. Use location to determine this — not the complaint language. Examples: location in Portugal = 'pt', France = 'fr', Arizona USA = 'en', Tamil Nadu India = 'ta', Catalonia Spain = 'ca', Quebec Canada = 'fr'",
+  "formal_request": "Write the full formal letter in the SAME LANGUAGE the user wrote their complaint in. If they wrote in English, write in English. If they wrote in French, write in French. Do NOT write in the official_language — that is handled separately by a translation step. The user needs to read and edit this letter before it gets translated. 3-4 paragraphs, citing the real law or ordinance you found, written from the perspective of concerned residents. Sign as Concerned Residents."
 }
 
 CRITICAL: Your final response must be ONLY the JSON object. No markdown, no explanation, no text before or after the JSON.`;

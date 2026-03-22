@@ -5,16 +5,16 @@ const STEPS = [
   {
     title: "Welcome to Civilian",
     subtitle: "Your neighborhood's voice, officially heard",
-    body: "Civilian turns plain English complaints into formal government letters — backed by real law, routed to the right official, and amplified by your community.",
+    body: "Civilian turns your complaint into a formal government letter — backed by real law, routed to the right official, and amplified by your community.",
     cta: "How it works",
   },
   {
     title: "How it works",
     subtitle: "Three steps to civic action",
     steps: [
-      { icon: "✍", label: "Describe the problem", desc: "Write in plain English. Any language. Attach a photo." },
-      { icon: "⚡", label: "AI finds the official", desc: "Claude searches city records, finds the right person, writes a formal letter citing real law." },
-      { icon: "📣", label: "Community amplifies", desc: "Neighbors echo your issue. At 50 voices it escalates to City Council automatically." },
+      { icon: 1, label: "Describe the problem", desc: "Write in any language, as casually as you want. Attach a photo." },
+      { icon: 2, label: "AI finds the official", desc: "Claude searches city records, finds the right person, writes a formal letter citing real law." },
+      { icon: 3, label: "Community amplifies", desc: "Neighbors echo your issue. At 50 voices it escalates to City Council automatically." },
     ],
     cta: "Set your location",
   },
@@ -77,7 +77,7 @@ export default function OnboardingModal() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
             {current.steps.map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,rgba(37,99,235,0.15),rgba(124,58,237,0.15))", border: "1px solid rgba(37,99,235,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{s.icon}</div>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(37,99,235,0.15)", border: "1px solid rgba(37,99,235,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#2563eb", flexShrink: 0 }}>{s.icon}</div>
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>{s.label}</p>
                   <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{s.desc}</p>

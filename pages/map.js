@@ -180,7 +180,10 @@ export default function MapPage() {
     });
     mapInstanceRef.current = map;
     map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
-    map.on("load", () => addMarkers(map, mapboxgl, enrichedPosts.length ? enrichedPosts : posts, "all"));
+    map.on("load", () => {
+      addMarkers(map, mapboxgl, enrichedPosts.length ? enrichedPosts : posts, "all");
+      addHeatmap(map, enrichedPosts.length ? enrichedPosts : posts);
+    });
     return () => {
       if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
     };
@@ -192,8 +195,12 @@ export default function MapPage() {
     const map = mapInstanceRef.current;
     if (map.loaded()) {
       addMarkers(map, window.mapboxgl, enrichedPosts, activeFilter);
+      addHeatmap(map, enrichedPosts);
     } else {
-      map.once("load", () => addMarkers(map, window.mapboxgl, enrichedPosts, activeFilter));
+      map.once("load", () => {
+        addMarkers(map, window.mapboxgl, enrichedPosts, activeFilter);
+        addHeatmap(map, enrichedPosts);
+      });
     }
   }, [geocoding, enrichedPosts]);
 
@@ -213,6 +220,42 @@ export default function MapPage() {
   const keepHover = useCallback(() => {
     clearTimeout(hoverTimerRef.current);
   }, []);
+
+  function addHeatmap(map, postsData) {
+    const features = postsData
+      .filter(p => p.lat && p.lng)
+      .map(p => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+        properties: { weight: Math.min((p.echo_count || 1) / 10, 1) },
+      }));
+    if (!features.length) return;
+    if (map.getSource("heatmap-source")) {
+      map.getSource("heatmap-source").setData({ type: "FeatureCollection", features });
+      return;
+    }
+    map.addSource("heatmap-source", { type: "geojson", data: { type: "FeatureCollection", features } });
+    map.addLayer({
+      id: "heatmap-layer",
+      type: "heatmap",
+      source: "heatmap-source",
+      maxzoom: 15,
+      paint: {
+        "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1, 1],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 15, 3],
+        "heatmap-color": [
+          "interpolate", ["linear"], ["heatmap-density"],
+          0, "rgba(0,0,0,0)",
+          0.2, "rgba(37,99,235,0.4)",
+          0.5, "rgba(245,158,11,0.6)",
+          0.8, "rgba(239,68,68,0.75)",
+          1, "rgba(239,68,68,0.9)",
+        ],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 20, 15, 40],
+        "heatmap-opacity": 0.55,
+      },
+    }, "waterway-label");
+  }
 
   async function addMarkers(map, mapboxgl, postsToShow, filter) {
     markersRef.current.forEach(m => { try { m.remove(); } catch {} });

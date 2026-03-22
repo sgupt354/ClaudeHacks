@@ -133,12 +133,26 @@ export default function SettingsPage() {
         <Section title="About">
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, color: "var(--muted)" }}>Version</span>
-              <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>1.0.0 — HackASU 2026</span>
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>Built at</span>
+              <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>HackASU 2026 — Track 4</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>Team</span>
+              <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>
+                <a href="https://github.com/sumedha" target="_blank" rel="noopener noreferrer"
+                  style={{ color: "var(--text)", textDecoration: "none", fontWeight: 600 }}
+                  onMouseEnter={e => e.currentTarget.style.color = "#2563eb"}
+                  onMouseLeave={e => e.currentTarget.style.color = "var(--text)"}>Sumedha</a>
+                {" + "}
+                <a href="https://github.com/ARasugit20" target="_blank" rel="noopener noreferrer"
+                  style={{ color: "var(--text)", textDecoration: "none", fontWeight: 600 }}
+                  onMouseEnter={e => e.currentTarget.style.color = "#2563eb"}
+                  onMouseLeave={e => e.currentTarget.style.color = "var(--text)"}>Aditya</a>
+              </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, color: "var(--muted)" }}>Team</span>
-              <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>Sumedha + Aditya</span>
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>Stack</span>
+              <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>Next.js · Claude AI · Supabase · Mapbox</span>
             </div>
             <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
               <a href="https://github.com/ARasugit20/ClaudeHacks" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>GitHub</a>

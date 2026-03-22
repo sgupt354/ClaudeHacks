@@ -340,10 +340,80 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.7; }
 @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes fadeOut { from { opacity:1; } to { opacity:0; } }
 
-/* ═══ MOBILE ═══ */
+/* ═══ TWO-COL LAYOUT ═══ */
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px;
+  align-items: start;
+}
+
+.desktop-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 76px;
+}
+
+/* ═══ MOBILE NAV ═══ */
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-mobile-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.mobile-drawer {
+  display: none;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  z-index: 99;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.mobile-drawer.open { display: flex; }
+.mobile-drawer .nav-link { padding: 10px 12px; font-size: 15px; }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 1024px) {
+  /* Forum 3-col: hide right aside */
+  .forum-right-aside { display: none !important; }
+  /* Compose 3-col: hide side panels */
+  .compose-side-panel { display: none !important; }
+  .compose-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 900px) {
+  .two-col-grid { grid-template-columns: 1fr !important; }
+  .desktop-sidebar { display: none !important; }
+  /* Forum 3-col: also hide left filter aside */
+  .forum-left-aside { display: none !important; }
+}
+
 @media (max-width: 640px) {
   .container { padding: 20px 14px; }
   .nav { padding: 0 16px; }
   .result-section { padding: 18px; }
   .official-card { flex-direction: column; gap: 10px; }
+  .nav-links { display: none; }
+  .nav-mobile-btn { display: flex; }
+  .two-col-grid { padding: 16px 14px; }
+  .forum-layout { padding: 16px 14px !important; }
 }

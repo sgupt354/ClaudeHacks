@@ -23,11 +23,19 @@ export default function EchoConsentDialog({ post, onConfirm, onCancel }) {
           Add your voice to this issue
         </h2>
 
-        <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 20 }}>
+        <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 16 }}>
           By adding your voice, you join <strong style={{ color: "var(--text)" }}>{echoCount} neighbor{echoCount !== 1 ? "s" : ""}</strong> demanding action on this issue. A formal letter will be sent to <strong style={{ color: "var(--text)" }}>{official}</strong> at <strong style={{ color: "var(--text)" }}>{dept}</strong> on your behalf.
           <br /><br />
           If there is no government response within 7 days, a follow-up letter will automatically be sent — approved collectively by everyone who echoed this issue.
         </p>
+
+        {/* Across differences tag */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)", marginBottom: 20 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+          <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5, flex: 1 }}>
+            <strong style={{ color: "#8b5cf6" }}>Across differences</strong> — this issue has support from residents across political backgrounds. Your voice is anonymous and counted alongside everyone.
+          </p>
+        </div>
 
         <button
           onClick={onConfirm}
