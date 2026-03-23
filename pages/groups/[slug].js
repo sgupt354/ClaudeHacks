@@ -88,7 +88,7 @@ export default function GroupDetailPage() {
       <div style={{ height: 240, background: group.gradient, position: "relative" }}>
         <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
         <div style={{ position: "absolute", bottom: 28, left: 32, right: 32 }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+          <div className="group-cover-actions">
             <div>
               <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
                 {group.tags.map(t => (
@@ -112,7 +112,7 @@ export default function GroupDetailPage() {
 
       {/* Stats row */}
       <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "16px 32px", display: "flex", alignItems: "center", gap: 32 }}>
+        <div className="group-stats-row">
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>{group.members}</p>
             <p style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Members</p>
@@ -142,7 +142,7 @@ export default function GroupDetailPage() {
 
       {/* Tabs */}
       <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 32px", display: "flex", gap: 0 }}>
+        <div className="group-tabs-row">
           {TABS.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               padding: "14px 20px", border: "none", background: "transparent",
@@ -156,7 +156,7 @@ export default function GroupDetailPage() {
       </div>
 
       {/* Tab content */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 32px" }}>
+      <div className="group-content">
 
         {/* Posts tab */}
         {activeTab === "Posts" && (
@@ -197,7 +197,7 @@ export default function GroupDetailPage() {
         {activeTab === "Members" && (
           <div>
             <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 20 }}>Showing {FAKE_MEMBERS.length} of {group.members} members</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+            <div className="group-members-grid">
               {FAKE_MEMBERS.map((member, i) => (
                 <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px", display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
                   <img src={member.avatar} alt={member.name} style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
@@ -213,7 +213,7 @@ export default function GroupDetailPage() {
 
         {/* About tab */}
         {activeTab === "About" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="group-about-grid">
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "24px", boxShadow: "var(--card-shadow)" }}>
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--muted)", marginBottom: 12 }}>About</p>
               <p style={{ fontSize: 15, color: "var(--text)", lineHeight: 1.65, marginBottom: 20 }}>{group.description}</p>

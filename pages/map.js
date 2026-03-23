@@ -130,6 +130,7 @@ export default function MapPage() {
   const [hoverPost, setHoverPost] = useState(null);
   const [hoverRect, setHoverRect] = useState(null);
   const [is3D, setIs3D] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/posts")
@@ -397,9 +398,9 @@ export default function MapPage() {
         </span>
       </div>
 
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", height: "calc(100vh - 112px)" }}>
+      <div className="map-body">
         {/* Sidebar */}
-        <aside style={{ width: 300, flexShrink: 0, background: "var(--surface)", borderRight: "1px solid var(--border)", overflowY: "auto" }}>
+        <aside className={`map-sidebar${sidebarOpen ? "" : " collapsed"}`}>
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1 }}>
               {filteredList.length} Issues
@@ -437,9 +438,14 @@ export default function MapPage() {
         </aside>
 
         {/* Map */}
-        <div style={{ flex: 1, position: "relative" }}>
+        <div className="map-canvas-wrap" style={{ flex: 1, position: "relative" }}>
+          {/* Mobile sidebar toggle */}
+          <button className="map-sidebar-toggle" onClick={() => setSidebarOpen(v => !v)}>
+            {sidebarOpen ? "Hide List" : `Show ${filteredList.length} Issues`}
+          </button>
+
           {/* Style + 3D switcher */}
-          <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10, display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 4, boxShadow: "var(--card-shadow)" }}>
+          <div className="map-style-switcher" style={{ position: "absolute", top: 16, right: 16, zIndex: 10, display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 4, boxShadow: "var(--card-shadow)" }}>
             {MAP_STYLES.map(s => {
               const active = s.id === "3d" ? is3D : (activeStyle === s.id && !is3D);
               return (
@@ -455,7 +461,7 @@ export default function MapPage() {
 
           {/* Selected post panel */}
           {selectedPost && (
-            <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 10, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 20px", width: 320, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
+            <div className="map-selected-panel" style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 10, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 20px", width: 320, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: TYPE_COLORS[selectedPost.issue_type] || "#94a3b8" }}>
                   {TYPE_LABELS[selectedPost.issue_type] || "Community"}

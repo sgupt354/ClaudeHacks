@@ -126,10 +126,10 @@ export default function GroupsPage() {
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
       <Nav />
 
-      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "28px 20px", display: "flex", gap: 20, alignItems: "flex-start" }}>
+      <div className="groups-layout">
 
         {/* ── LEFT SIDEBAR ──────────────────────────────────────────────── */}
-        <aside style={{ width: 220, flexShrink: 0, position: "sticky", top: 76 }}>
+        <aside className="groups-left-aside">
 
           {/* Your Groups */}
           <div style={sidePanel}>
@@ -229,7 +229,7 @@ export default function GroupsPage() {
           </div>
 
           {/* Group cards grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+          <div className="groups-cards-grid">
             {filtered.map(g => (
               <GroupCard key={g.slug} g={g} joined={joined} onToggleJoin={toggleJoin} />
             ))}
@@ -243,7 +243,7 @@ export default function GroupsPage() {
         </main>
 
         {/* ── RIGHT SIDEBAR ─────────────────────────────────────────────── */}
-        <aside style={{ width: 240, flexShrink: 0, position: "sticky", top: 76 }}>
+        <aside className="groups-right-aside">
 
           {/* Live Activity */}
           <div style={sidePanel}>
