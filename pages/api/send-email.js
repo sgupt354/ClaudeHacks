@@ -14,15 +14,16 @@ export default async function handler(req, res) {
   const subject = `Community Concern: ${issue_type?.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} — ${location || "Tempe, AZ"}`;
 
   const toAddress = process.env.OVERRIDE_EMAIL_TO || official_email;
-  const fromAddress = process.env.CIVILIAN_FROM_EMAIL || "letters@civilian.app";
-  const bccAddress = process.env.CIVILIAN_BCC_EMAIL || "log@civilian.app";
+  const fromAddress = (process.env.CIVILIAN_FROM_EMAIL || "letters@civilian.app").trim();
+  const bccAddress = (process.env.CIVILIAN_BCC_EMAIL || "log@civilian.app").trim();
+  const replyTo = (process.env.CIVILIAN_REPLY_TO || official_email || "").trim();
 
   try {
     const { data, error } = await resend.emails.send({
       from: `Civilian <${fromAddress}>`,
       to: [toAddress],
       bcc: [bccAddress],
-      reply_to: official_email,
+      reply_to: replyTo,
       subject,
       html: `<!DOCTYPE html>
 <html>
