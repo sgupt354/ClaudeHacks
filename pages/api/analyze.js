@@ -39,20 +39,31 @@ ACCEPT (rejected: false) if the complaint describes a specific physical problem 
 IF REJECTED return ONLY this JSON:
 {"rejected": true, "reason": "<exactly one of: no_location | targets_individual | political_opinion | policy_suggestion | abusive_content | outside_jurisdiction | not_specific_enough | private_property_or_hoa | non_local_government | too_vague_to_route>", "reframe_suggestion": "<one specific sentence telling the user how to rewrite their complaint>"}
 
-IF ACCEPTED do up to 3 web searches if needed to find a verified email:
-"[location] [issue type] official report email"
+IF ACCEPTED search the web to find the correct authority for this complaint.
+
+Do up to 3 searches in this order:
+
+Search 1: Find the responsible official's name, title, and direct email
+Query format: '[city] [state/country] [issue type] official email site:.gov'
 Examples:
-- "Tempe Arizona crosswalk report official email"
-- "Phoenix Arizona pothole report official email"
-- "London UK broken streetlight report official email"
-- "Mumbai India road damage report official email"
+- 'Tempe Arizona broken sidewalk official email site:.gov'
+- 'Phoenix Arizona pothole report official email site:.gov'
+- 'London UK broken streetlight official email site:.gov'
+- 'Mumbai India road damage report official email site:.gov'
 
-Return the first real official government email address found.
-Do not guess. Do not construct emails.
-Only return an email you actually found in search results.
-If nothing found, return empty string.
+Search 2 (only if Search 1 finds no email): Find the department's general inbox
+Query format: '[city] [department name] contact email'
 
-Also find the relevant local ordinance or statute number for this issue type.
+Search 3 (only if Search 2 finds no email): Find the city's general reporting portal
+Query format: '[city] report civic issue contact email'
+
+Rules for all searches:
+- Only return an email address you actually found in search results from official government sources
+- Do not guess, construct, or infer email addresses
+- Do not use generic formats like firstname.lastname@city.gov unless you found that exact address in results
+- Do not hardcode or assume any email address for any city
+- If no verified email is found after all 3 searches, return empty string
+- This applies to every city in every country — Tempe, Phoenix, London, Mumbai, anywhere
 
 Then return ONLY this JSON:
 {"rejected": false, "issue_type": "<traffic_safety|street_lighting|road_maintenance|parks_facilities|noise_complaint|housing|utilities|sanitation|other>", "severity": "<critical|urgent|standard|suggestion>", "department": "<real department name from search>", "official_name": "<real name and title from search>", "official_email": "<verified .gov email from web search, or empty string if none verified>", "official_email_fallback": "<second verified .gov email from search, or empty string>", "email_source": "<search — URL where email was found, or empty string>", "location_extracted": "<location from complaint>", "urgency_score": <1-10>, "language": "<ISO 639-1 code of language user wrote in>", "formal_request": "<complete formal letter in same language user wrote in, 3-4 paragraphs, citing real ordinance found, signed as Concerned Residents>"}
@@ -64,62 +75,27 @@ LETTER WRITING RULES:
 
 CRITICAL: Response must be ONLY valid JSON. No markdown, no backticks, no text before or after. If any email not found, use empty string.`;
 
-const KNOWN_DEPARTMENT_EMAILS = {
-  street_lighting:  "StreetLightRequest@tempe.gov",
-  road_maintenance: "streets@tempe.gov",
-  traffic_safety:   "transportation@tempe.gov",
-  parks_facilities: "parks@tempe.gov",
-  utilities:        "utilities@tempe.gov",
-  sanitation:       "sanitationservices@tempe.gov",
-  noise_complaint:  "neighborhoods@tempe.gov",
-  other:            "tempe311@tempe.gov",
-};
-
-const PHOENIX_EMAILS = {
-  street_lighting:  "streetlights@phoenix.gov",
-  road_maintenance: "streets@phoenix.gov",
-  traffic_safety:   "traffic@phoenix.gov",
-  parks_facilities: "parks@phoenix.gov",
-  other:            "phxhelps@phoenix.gov",
-};
-
-function getCityFallback(issueType, location) {
-  const loc = (location || "").toLowerCase();
-  if (loc.includes("phoenix")) {
-    return PHOENIX_EMAILS[issueType] || PHOENIX_EMAILS.other;
-  }
-  if (loc.includes("tempe") || !loc) {
-    return KNOWN_DEPARTMENT_EMAILS[issueType] || KNOWN_DEPARTMENT_EMAILS.other;
-  }
-  return null;
-}
-
 function isGovEmail(email) {
   return typeof email === "string" && /\.(gov)(\/|$|:)|\.gov$/.test(email);
 }
 
 function applyEmailFallback(data, location) {
   if (data.rejected) return data;
-  let officialEmail = typeof data.official_email === "string" && data.official_email.trim() ? data.official_email.trim() : "";
+  let officialEmail = typeof data.official_email === "string" && data.official_email.trim()
+    ? data.official_email.trim() : "";
   if (!isGovEmail(officialEmail)) officialEmail = "";
-  let officialFallback = typeof data.official_email_fallback === "string" && data.official_email_fallback.trim() ? data.official_email_fallback.trim() : "";
+  let officialFallback = typeof data.official_email_fallback === "string" && data.official_email_fallback.trim()
+    ? data.official_email_fallback.trim() : "";
   if (!isGovEmail(officialFallback)) officialFallback = "";
 
-  const next = { ...data, official_email: officialEmail, official_email_fallback: officialFallback };
+  const next = {
+    ...data,
+    official_email: officialEmail,
+    official_email_fallback: officialFallback,
+  };
 
-  // If Claude found a verified email, keep it as-is
-  if (officialEmail) {
+  if (officialEmail || officialFallback) {
     return { ...next, email_source: next.email_source || "search" };
-  }
-  // No email found — apply city fallback database
-  const fallback = getCityFallback(data.issue_type, location);
-  if (fallback) {
-    return {
-      ...next,
-      official_email: fallback,
-      official_email_fallback: officialFallback || "",
-      email_source: "fallback_database",
-    };
   }
   return { ...next, email_source: "not_found", email_not_found: true };
 }
@@ -155,7 +131,7 @@ export default async function handler(req, res) {
     }
     userContent.push({
       type: "text",
-      text: `Community complaint: ${sanitizedComplaint}\n\nLocation: ${sanitizedLocation || "Tempe, Arizona"}\n\nDo up to 3 web searches if needed as instructed, then respond with ONLY the JSON object described in your instructions.`,
+      text: `Community complaint: ${sanitizedComplaint}\n\nLocation: ${sanitizedLocation || "Tempe, Arizona"}\n\nSearch the web as instructed to find the real responsible official and their verified email. Then respond with ONLY the JSON object described in your instructions.`,
     });
 
     const message = await client.messages.create({
