@@ -39,34 +39,93 @@ ACCEPT (rejected: false) if the complaint describes a specific physical problem 
 IF REJECTED return ONLY this JSON:
 {"rejected": true, "reason": "<exactly one of: no_location | targets_individual | political_opinion | policy_suggestion | abusive_content | outside_jurisdiction | not_specific_enough | private_property_or_hoa | non_local_government | too_vague_to_route>", "reframe_suggestion": "<one specific sentence telling the user how to rewrite their complaint>"}
 
-IF ACCEPTED search the web to find the correct authority for this complaint.
+IF ACCEPTED search the web to find every real contact channel available for this
+specific complaint. The channels vary by city, country, and issue type — find what
+actually exists, not what you assume should exist.
 
-Do up to 3 searches in this order:
+Do up to 5 web searches in this order:
 
 Search 1: Find the responsible official's name, title, and direct email
-Query format: '[city] [state/country] [issue type] official email site:.gov'
-Examples:
-- 'Tempe Arizona broken sidewalk official email site:.gov'
-- 'Phoenix Arizona pothole report official email site:.gov'
-- 'London UK broken streetlight official email site:.gov'
-- 'Mumbai India road damage report official email site:.gov'
+Query: '[city] [state/country] [issue type] responsible official email site:.gov'
 
-Search 2 (only if Search 1 finds no email): Find the department's general inbox
-Query format: '[city] [department name] contact email'
+Search 2: Find the department's general inbox or reporting email
+Query: '[city] [department name] report contact email'
 
-Search 3 (only if Search 2 finds no email): Find the city's general reporting portal
-Query format: '[city] report civic issue contact email'
+Search 3: Find the city's online reporting portal or 311 web form URL
+Query: '[city] [state/country] report [issue type] online portal'
+
+Search 4: Find the city's phone number for this issue type
+Query: '[city] [state/country] [issue type] report phone number'
+
+Search 5: Find the physical mailing address of the responsible department
+Query: '[city] [state/country] [department name] mailing address'
 
 Rules for all searches:
-- Only return an email address you actually found in search results from official government sources
-- Do not guess, construct, or infer email addresses
-- Do not use generic formats like firstname.lastname@city.gov unless you found that exact address in results
-- Do not hardcode or assume any email address for any city
-- If no verified email is found after all 3 searches, return empty string
-- This applies to every city in every country — Tempe, Phoenix, London, Mumbai, anywhere
+- Only return information you actually found in search results from official sources
+- Do not guess, construct, or infer any contact details
+- Do not hardcode or assume anything for any city or country
+- If a channel does not exist or cannot be verified, return null for that field
+- This applies universally — every city, every country, every issue type
 
 Then return ONLY this JSON:
-{"rejected": false, "issue_type": "<traffic_safety|street_lighting|road_maintenance|parks_facilities|noise_complaint|housing|utilities|sanitation|other>", "severity": "<critical|urgent|standard|suggestion>", "department": "<real department name from search>", "official_name": "<real name and title from search>", "official_email": "<verified .gov email from web search, or empty string if none verified>", "official_email_fallback": "<second verified .gov email from search, or empty string>", "email_source": "<search — URL where email was found, or empty string>", "location_extracted": "<location from complaint>", "urgency_score": <1-10>, "language": "<ISO 639-1 code of language user wrote in>", "formal_request": "<complete formal letter in same language user wrote in, 3-4 paragraphs, citing real ordinance found, signed as Concerned Residents>"}
+{
+  "rejected": false,
+  "issue_type": "<traffic_safety|street_lighting|road_maintenance|parks_facilities|noise_complaint|housing|utilities|sanitation|other>",
+  "severity": "<critical|urgent|standard|suggestion>",
+  "department": "<real department name found in search>",
+  "official_name": "<real name and title found in search, or null>",
+  "location_extracted": "<location from complaint>",
+  "urgency_score": <1-10>,
+  "language": "<ISO 639-1 code of language user wrote in>",
+  "ordinance": "<relevant local ordinance or statute number if found, or null>",
+  "formal_request": "<complete formal letter in same language user wrote in, 3-4 paragraphs, citing ordinance if found, signed as Concerned Residents>",
+  "contact_channels": [
+    {
+      "type": "email_direct",
+      "label": "<human readable label e.g. 'Email Shelly Seyler, Deputy Director'>",
+      "value": "<verified .gov email address>",
+      "source_url": "<url where this was found>",
+      "available": true
+    },
+    {
+      "type": "email_department",
+      "label": "<human readable label e.g. 'Email Transportation Department'>",
+      "value": "<verified department .gov email>",
+      "source_url": "<url where this was found>",
+      "available": true
+    },
+    {
+      "type": "online_portal",
+      "label": "<human readable label e.g. 'Submit via Tempe 311 Portal' or 'Submit via FixMyStreet' or 'Submit via NYC311'>",
+      "value": "<verified URL of the reporting portal>",
+      "source_url": "<url where this was found>",
+      "available": true
+    },
+    {
+      "type": "phone",
+      "label": "<human readable label e.g. 'Call Tempe 311' or 'Call Transportation Maintenance'>",
+      "value": "<verified phone number>",
+      "source_url": "<url where this was found>",
+      "available": true
+    },
+    {
+      "type": "mail",
+      "label": "<human readable label e.g. 'Send Letter by Post'>",
+      "value": "<verified mailing address of department>",
+      "source_url": "<url where this was found>",
+      "available": true
+    }
+  ]
+}
+
+Rules for contact_channels:
+- Only include a channel in the array if you actually found verified information for it
+- Do not include a channel with null or empty value — omit it entirely
+- The array can have 1 item or 5 items depending on what actually exists
+- Order channels by how actionable they are: email_direct first, then email_department,
+  then online_portal, then phone, then mail
+- The label must be specific and human-readable — never generic like "Email Official"
+- Every channel needs a source_url showing where you found it
 
 LETTER WRITING RULES:
 - Only describe what the resident explicitly reported. Do not fabricate or assume specific incidents, injuries, near-misses, or consequences that were not mentioned in the original complaint.
@@ -79,25 +138,38 @@ function isGovEmail(email) {
   return typeof email === "string" && /\.(gov)(\/|$|:)|\.gov$/.test(email);
 }
 
-function applyEmailFallback(data, location) {
+function sanitizeResponse(data) {
   if (data.rejected) return data;
-  let officialEmail = typeof data.official_email === "string" && data.official_email.trim()
-    ? data.official_email.trim() : "";
-  if (!isGovEmail(officialEmail)) officialEmail = "";
-  let officialFallback = typeof data.official_email_fallback === "string" && data.official_email_fallback.trim()
-    ? data.official_email_fallback.trim() : "";
-  if (!isGovEmail(officialFallback)) officialFallback = "";
 
-  const next = {
+  // Validate contact_channels — remove any channel missing type, label, or value
+  const validTypes = [
+    "email_direct",
+    "email_department",
+    "online_portal",
+    "phone",
+    "mail",
+  ];
+
+  const cleanChannels = Array.isArray(data.contact_channels)
+    ? data.contact_channels.filter((ch) => {
+        if (!ch || !ch.type || !ch.value || !ch.label) return false;
+        if (!validTypes.includes(ch.type)) return false;
+        // Validate email channels must contain @ and a dot
+        if (ch.type.startsWith("email") && !/.+@.+\..+/.test(ch.value)) return false;
+        // Validate portal channels must be a URL
+        if (ch.type === "online_portal" && !ch.value.startsWith("http")) return false;
+        return true;
+      })
+    : [];
+
+  // Flag if no channels found at all
+  const noChannelsFound = cleanChannels.length === 0;
+
+  return {
     ...data,
-    official_email: officialEmail,
-    official_email_fallback: officialFallback,
+    contact_channels: cleanChannels,
+    no_channels_found: noChannelsFound,
   };
-
-  if (officialEmail || officialFallback) {
-    return { ...next, email_source: next.email_source || "search" };
-  }
-  return { ...next, email_source: "not_found", email_not_found: true };
 }
 
 export default async function handler(req, res) {
@@ -131,7 +203,7 @@ export default async function handler(req, res) {
     }
     userContent.push({
       type: "text",
-      text: `Community complaint: ${sanitizedComplaint}\n\nLocation: ${sanitizedLocation || "Tempe, Arizona"}\n\nSearch the web as instructed to find the real responsible official and their verified email. Then respond with ONLY the JSON object described in your instructions.`,
+      text: `Community complaint: ${sanitizedComplaint}\n\nLocation: ${sanitizedLocation || "Tempe, Arizona"}\n\nSearch the web as instructed to find every real contact channel available for this complaint — email, online portal, phone, and mailing address. Then respond with ONLY the JSON object described in your instructions.`,
     });
 
     const message = await client.messages.create({
@@ -165,7 +237,7 @@ export default async function handler(req, res) {
     // Try direct parse first
     try {
       const data = JSON.parse(raw);
-      return res.status(200).json(applyEmailFallback(data, sanitizedLocation));
+      return res.status(200).json(sanitizeResponse(data));
     } catch {
       // Fall back to extracting JSON from text
       const jsonStart = raw.indexOf("{");
@@ -175,7 +247,7 @@ export default async function handler(req, res) {
         throw new Error("No JSON found in response");
       }
       const data = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
-      return res.status(200).json(applyEmailFallback(data, sanitizedLocation));
+      return res.status(200).json(sanitizeResponse(data));
     }
   } catch (err) {
     console.error("Claude API error:", JSON.stringify({

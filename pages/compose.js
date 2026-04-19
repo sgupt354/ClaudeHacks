@@ -215,6 +215,15 @@ const TYPE_COLORS = {
   other:            "#94a3b8",
 };
 
+/** First email channel for DB `official_email` (forum / legacy display). */
+function primaryEmailFromChannels(contact_channels) {
+  if (!Array.isArray(contact_channels)) return "";
+  const direct = contact_channels.find(c => c && c.type === "email_direct" && c.value);
+  if (direct) return String(direct.value).trim();
+  const dept = contact_channels.find(c => c && c.type === "email_department" && c.value);
+  return dept ? String(dept.value).trim() : "";
+}
+
 function RightPanel() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
@@ -431,8 +440,7 @@ export default function Compose() {
           formal_request: analyzed.formal_request,
           department: analyzed.department,
           official_name: analyzed.official_name,
-          official_email: analyzed.official_email,
-          official_email_fallback: analyzed.official_email_fallback || "",
+          official_email: primaryEmailFromChannels(analyzed.contact_channels),
           issue_type: analyzed.issue_type,
           location: analyzed.location_extracted || location,
           urgency_score: analyzed.urgency_score || null,
@@ -721,6 +729,28 @@ export default function Compose() {
   );
 }
 
+function ChannelIcon({ type }) {
+  const s = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "#2563eb", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+  if (type === "email_direct" || type === "email_department") {
+    return (
+      <svg {...s}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+    );
+  }
+  if (type === "online_portal") {
+    return (
+      <svg {...s}><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+    );
+  }
+  if (type === "phone") {
+    return (
+      <svg {...s}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+    );
+  }
+  return (
+    <svg {...s}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+  );
+}
+
 function ResultPage({ result, router }) {
   const originalLetter = result.formal_request || "";
   const [editedLetter, setEditedLetter] = useState(originalLetter);
@@ -733,9 +763,13 @@ function ResultPage({ result, router }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [pendingEmailChannel, setPendingEmailChannel] = useState(null);
+  const [sentRecipientLabel, setSentRecipientLabel] = useState("");
 
   const userLang = ALL_LANGUAGES.find(l => l.code === result.language);
   const officialLang = ALL_LANGUAGES.find(l => l.code === result.official_language);
+
+  const contactChannels = Array.isArray(result.contact_channels) ? result.contact_channels : [];
 
   // Only show translate when languages genuinely differ
   const needsTranslation = !!(
@@ -746,16 +780,49 @@ function ResultPage({ result, router }) {
 
   const activeLetter = letterVersion === "translated" && translatedLetter ? translatedLetter : editedLetter;
 
+  function letterBodyForActions() {
+    return activeLetter + "\n\nSigned,\n" + (signerName.trim() || "Anonymous Resident");
+  }
+
+  async function openPortalChannel(ch) {
+    try {
+      await navigator.clipboard.writeText(letterBodyForActions());
+    } catch {
+      /* clipboard may fail; still open portal */
+    }
+    window.open(ch.value, "_blank", "noopener,noreferrer");
+  }
+
+  function printFormalLetter() {
+    const text = letterBodyForActions();
+    const w = window.open("", "_blank");
+    if (!w) return;
+    const safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Formal letter</title><style>body{font-family:system-ui,-apple-system,sans-serif;padding:32px;max-width:720px;margin:0 auto;color:#111;line-height:1.6;}pre{white-space:pre-wrap;font-family:inherit;font-size:14px;margin:0;}</style></head><body><pre>${safe}</pre></body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => {
+      w.print();
+      w.close();
+    }, 200);
+  }
+
   async function doSendEmail() {
+    const to = pendingEmailChannel?.value?.trim();
+    if (!to) {
+      setSendError("No recipient email selected.");
+      setShowSendConsent(false);
+      return;
+    }
     setSending(true);
     setSendError("");
     try {
-      const letterToSend = activeLetter + "\n\nSigned,\n" + (signerName.trim() || "Anonymous Resident");
+      const letterToSend = letterBodyForActions();
       const res = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          official_email: result.official_email,
+          official_email: to,
           official_name: result.official_name,
           department: result.department,
           issue_type: result.issue_type,
@@ -767,11 +834,13 @@ function ResultPage({ result, router }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Send failed");
       setSent(true);
+      setSentRecipientLabel(pendingEmailChannel?.label || result.official_name || to);
     } catch (err) {
       setSendError(err.message);
     } finally {
       setSending(false);
       setShowSendConsent(false);
+      setPendingEmailChannel(null);
     }
   }
 
@@ -828,13 +897,104 @@ function ResultPage({ result, router }) {
           {renderLangBadge()}
 
           <div className="result-section" style={{ marginBottom: 16 }}>
-            <p className="result-label">Send this letter to</p>
-            <div className="official-card">
-              <div>
-                <p className="official-name">{result.official_name}</p>
-                <p className="official-dept">{result.department}</p>
-                <p className="official-email">{result.official_email}</p>
+            <p className="result-label">How would you like to reach out?</p>
+            {result.department && (
+              <p className="official-dept" style={{ marginBottom: result.official_name ? 6 : 12 }}>{result.department}</p>
+            )}
+            {result.official_name && (
+              <p className="official-name" style={{ marginBottom: 12 }}>{result.official_name}</p>
+            )}
+            {result.no_channels_found && (
+              <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", marginBottom: 12, fontSize: 13, color: "#92400e", lineHeight: 1.5 }}>
+                No direct contact found for this authority. Search your city&apos;s official website to find the right department.
               </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {contactChannels.map((ch, idx) => {
+                const key = `${ch.type}-${ch.value}-${idx}`;
+                const btnBase = {
+                  marginTop: 10,
+                  padding: "9px 16px",
+                  borderRadius: 10,
+                  border: "none",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  alignSelf: "flex-start",
+                };
+                if (ch.type === "email_direct" || ch.type === "email_department") {
+                  return (
+                    <div key={key} style={{ border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px", background: "var(--bg)" }}>
+                      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                        <div style={{ flexShrink: 0, marginTop: 2 }}><ChannelIcon type={ch.type} /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, lineHeight: 1.35 }}>{ch.label}</p>
+                          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 0, lineHeight: 1.45 }}>A formal letter will be sent on your behalf</p>
+                          {!sent && (
+                            <button
+                              type="button"
+                              onClick={() => { setPendingEmailChannel(ch); setShowSendConsent(true); }}
+                              style={{ ...btnBase, background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "white", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}
+                            >
+                              Send Letter
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                if (ch.type === "online_portal") {
+                  return (
+                    <div key={key} style={{ border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px", background: "var(--bg)" }}>
+                      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                        <div style={{ flexShrink: 0, marginTop: 2 }}><ChannelIcon type="online_portal" /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, lineHeight: 1.35 }}>{ch.label}</p>
+                          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 0, lineHeight: 1.45 }}>Your letter will be copied to clipboard automatically</p>
+                          <button type="button" onClick={() => openPortalChannel(ch)} style={{ ...btnBase, background: "#0ea5e9", color: "white" }}>
+                            Open Portal
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                if (ch.type === "phone") {
+                  return (
+                    <div key={key} style={{ border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px", background: "var(--bg)" }}>
+                      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                        <div style={{ flexShrink: 0, marginTop: 2 }}><ChannelIcon type="phone" /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, lineHeight: 1.35 }}>{ch.label}</p>
+                          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 0, lineHeight: 1.45 }}>Your letter will be displayed to read from</p>
+                          <a href={`tel:${String(ch.value).replace(/\s/g, "")}`} style={{ ...btnBase, display: "inline-flex", alignItems: "center", textDecoration: "none", background: "#16a34a", color: "white" }}>
+                            Call Now
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                if (ch.type === "mail") {
+                  return (
+                    <div key={key} style={{ border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px", background: "var(--bg)" }}>
+                      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                        <div style={{ flexShrink: 0, marginTop: 2 }}><ChannelIcon type="mail" /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, lineHeight: 1.35 }}>{ch.label}</p>
+                          <p style={{ fontSize: 12, color: "var(--text)", marginBottom: 0, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{ch.value}</p>
+                          <button type="button" onClick={printFormalLetter} style={{ ...btnBase, background: "var(--surface)", color: "var(--text)", border: "1.5px solid var(--border)" }}>
+                            Print Letter
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
           </div>
 
@@ -887,6 +1047,12 @@ function ResultPage({ result, router }) {
               </p>
             </div>
 
+            {result.ordinance && (
+              <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
+                Cites: {result.ordinance}
+              </p>
+            )}
+
             {/* Translate banner — only when languages differ */}
             {needsTranslation && !translatedLetter && (
               <div style={{ marginTop: 12, padding: "14px 16px", borderRadius: 12, background: "rgba(37,99,235,0.06)", border: "1px solid rgba(37,99,235,0.25)" }}>
@@ -920,24 +1086,11 @@ function ResultPage({ result, router }) {
               </p>
             </div>
 
-            {/* Button 1 — primary: Send via Resend */}
-            {sent ? (
+            {/* Sent confirmation (email via Resend) */}
+            {sent && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "14px", borderRadius: 12, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.35)", color: "#16a34a", fontSize: 15, fontWeight: 700, marginBottom: 10, boxSizing: "border-box" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Letter sent to {result.official_name}
-              </div>
-            ) : result.official_email ? (
-              <button
-                onClick={() => setShowSendConsent(true)}
-                disabled={sending}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "14px", borderRadius: 12, background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "white", border: "none", fontSize: 15, fontWeight: 700, cursor: sending ? "default" : "pointer", marginBottom: 10, boxSizing: "border-box", boxShadow: "0 4px 20px rgba(37,99,235,0.3)", fontFamily: "inherit", opacity: sending ? 0.7 : 1 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                Send Letter to Official
-              </button>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                No official email found — use the copy option below
+                Letter sent to {sentRecipientLabel || result.official_name || "official"}
               </div>
             )}
 
@@ -1004,7 +1157,7 @@ function ResultPage({ result, router }) {
 
       {/* Send consent dialog */}
       {showSendConsent && (
-        <div onClick={() => setShowSendConsent(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div onClick={() => { setShowSendConsent(false); setPendingEmailChannel(null); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "28px", maxWidth: 420, width: "100%", boxShadow: "0 24px 80px rgba(0,0,0,0.4)" }}>
             {/* Icon */}
             <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
@@ -1015,9 +1168,18 @@ function ResultPage({ result, router }) {
               This will send your formal letter directly to:
             </p>
             <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>{result.official_name}</p>
-              <p style={{ fontSize: 13, color: "var(--muted)" }}>{result.department}</p>
-              <p style={{ fontSize: 12, color: "#2563eb", marginTop: 4 }}>{result.official_email}</p>
+              {result.official_name && (
+                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>{result.official_name}</p>
+              )}
+              {result.department && (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>{result.department}</p>
+              )}
+              {pendingEmailChannel && (
+                <p style={{ fontSize: 12, color: "#2563eb", marginTop: 4 }}>{pendingEmailChannel.label}</p>
+              )}
+              {pendingEmailChannel && (
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, wordBreak: "break-all" }}>{pendingEmailChannel.value}</p>
+              )}
             </div>
             <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 20 }}>
               Signed as: <strong style={{ color: "var(--text)" }}>{signerName.trim() || "Anonymous Resident"}</strong>
@@ -1030,7 +1192,7 @@ function ResultPage({ result, router }) {
               {sending ? "Sending..." : "Yes, Send Letter"}
             </button>
             <button
-              onClick={() => setShowSendConsent(false)}
+              onClick={() => { setShowSendConsent(false); setPendingEmailChannel(null); }}
               style={{ width: "100%", padding: "10px", borderRadius: 12, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Cancel
             </button>
