@@ -178,6 +178,8 @@ export default async function handler(req, res) {
       ],
     });
 
+    console.log("Claude response blocks:", JSON.stringify(message.content.map(b => b.type)));
+
     // Get the last text block (after all tool use)
     const textBlock = message.content.findLast(block => block.type === "text");
     if (!textBlock) throw new Error("No text response from Claude");
@@ -200,7 +202,14 @@ export default async function handler(req, res) {
       return res.status(200).json(applyEmailFallback(data, sanitizedLocation));
     }
   } catch (err) {
-    console.error("Claude API error:", err);
-    return res.status(500).json({ error: err.message });
+    console.error("Claude API error:", JSON.stringify({
+      message: err.message,
+      status: err.status,
+      raw: err?.error,
+    }));
+    return res.status(500).json({ 
+      error: err.message,
+      detail: err?.error || null 
+    });
   }
 }
